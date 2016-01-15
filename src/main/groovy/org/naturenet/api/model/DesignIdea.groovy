@@ -1,7 +1,10 @@
 package org.naturenet.api.model
 
+import groovy.transform.Canonical
+
 import java.time.LocalDateTime
 
+@Canonical
 class DesignIdea {
 
     int id
