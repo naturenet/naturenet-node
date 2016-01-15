@@ -12,7 +12,7 @@ class Observation {
     LocalDateTime created_at
     LocalDateTime updated_at
     String description
-    String location
+    List location
 
     /**
      * @return an observation with randomly generated values.
@@ -24,7 +24,7 @@ class Observation {
                 user_id: SampleValues.RNG.nextInt(),
                 created_at: SampleValues.date(),
                 description: SampleValues.stringOfWords(100),
-                location: SampleValues.coordinates(centerLat, centerLon, radius).toListString())
+                location: SampleValues.coordinates(centerLat, centerLon, radius))
         obs.updated_at = obs.created_at.plusHours(1)
         return obs
     }
