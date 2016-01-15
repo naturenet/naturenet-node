@@ -1,0 +1,131 @@
+FORMAT: 1A
+HOST: https://naturenet-mock.herokuapp.com
+
+# NatureNet
+
+NatureNet is a citizen science project with a crowd-sourced design. 
+The goal to increase motivation for participation and to identify 
+creative ways in which people can contribute to sustainable bio-diversity.
+
+----
+
+## Design Notes
+
+Even though the API is described here as belonging to different data collections
+I know that currently everything is actually stored as 'Note'. Even if the data
+storage remains the same it would be beneficial to do the data filtering/transformation
+on the server to produce entities something like those described below. That way, 
+regardless of design decisions on the backend, we can present a semantic API to the 
+clients and avoid sending huge amounts of data on the wire.
+
+Also take the example responses with a grain of salt since I actually have no idea
+what data is stored or how the app/www uses it.
+
+> Jason
+
+----
+
+## Observations Collection [/observations]
+
+### List Observations [GET /observations/{?siteId}{?offset}{?limit}]
+
+Retrieves a list of observations for a site ordered by last updated returning 
+the most recent first. Can optionally return only a slice of the results to enable
+clients to handle pagination.
+
++ Parameters
+    + siteId: `1` (number, required) - The id of the site to load observations for
+    + offset: `10` (number, optional) - How far into the result set to start the list from.
+        + default: `0`
+    + limit: `5` (number, optional) - How many records to return from the offset.
+    
++ Response 200 (application/json)
+
+        [
+            {
+                "id": 123,
+                "activity_id": 1,
+                "user_id": 1,
+                "created_at": "2016-01-11T17:31:10+00:00",
+                "updated_at": "2016-01-11T17:31:10+00:00",
+                "description": "I did this!",
+                "location": "In the app this looks like a choice from a preset list based on the activity?"
+            },
+            {
+                "id": 200,
+                "activity_id": 1,
+                "user_id": 1,
+                "created_at": "2016-01-11T17:31:10+00:00",
+                "updated_at": "2016-01-11T17:31:10+00:00",
+                "description": "foo",
+                "location": "bar"
+            }
+        ]
+        
+### Observations Near [GET /observations/near{?lon}{?lat}{?radius}]
+        
+Retrieves all observations near a location regardless of the site they belong to.
+
++ parameters
+    + lat: `44.0` (number, required) - Latitude of the location to search around
+    + lon: `102.3` (number, required) - Longitude of the location to search around
+    + radius:`52.3` (number, optional) - The radius, in kilometers, around the center to find observations in.
+        + default: `100`
+
++ response 200 (application/json)
+
+        [
+            {
+                "id": 123,
+                "activity_id": 1,
+                "user_id": 1,
+                "created_at": "2016-01-11T17:31:10+00:00",
+                "updated_at": "2016-01-11T17:31:10+00:00",
+                "description": "I did this!",
+                "location": "In the app this looks like a choice from a preset list based on the activity?"
+            },
+            {
+                "id": 200,
+                "activity_id": 1,
+                "user_id": 1,
+                "created_at": "2016-01-11T17:31:10+00:00",
+                "updated_at": "2016-01-11T17:31:10+00:00",
+                "description": "foo",
+                "location": "bar"
+            }
+        ]
+
+
+## Ideas Collection [/ideas]
+
+### List Ideas [GET /ideas{?offset}{?limit}{?allUsers}]
+
+Retrieves a list of design ideas either submitted by the user making the request (default) or
+from all users. The list is ordered so the most recent is returned first. Can optionally return 
+only a slice of the results to enable clients to handle pagination.
+
++ Parameters
+    + offset: `10` (number, optional) - How far into the result set to start the list from.
+        + Default: `0`
+    + limit: `5` (number, optional) - How many records to return from the offset.
+
++ response 200 (application/json)
+
+        [
+            {
+                "id": 42,
+                "heading": "Wouldn't it be cool if...",
+                "idea": "Maintain aspect ratio for the photos uploaded",
+                "created_at": "2016-01-11T17:31:10+00:00",
+                "updated_at": "2016-01-11T17:31:10+00:00",
+                "user_id": 1
+            },
+            {
+                "id": 56,
+                "heading": "Wouldn't it be cool if...",
+                "idea": "Maintain aspect ratio for the photos uploaded",
+                "created_at": "2016-01-11T17:31:10+00:00",
+                "updated_at": "2016-01-11T17:31:10+00:00",
+                "user_id": 1
+            }
+        ]
