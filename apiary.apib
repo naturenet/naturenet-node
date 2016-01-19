@@ -791,5 +791,102 @@ List all ideas submitted by a user.
             "message": "You must be logged on to comment on an idea"
         }
 
+## Users [/users]
 
+Endpoints for handling user signup and login.
+
+### Signup [POST /users/signup]
+
+Creates a new user
+
++ Request (application/json)
+
+    + Body
+            
+            {
+                "username": "jason",
+                "display_name": "Jason Maher",
+                "email": "jason@jasonmaher.me",
+                "password": "secret",
+                "avatar_url": "about:blank"
+            }
+
++ Response 201 (application/json)
+
+    + Headers
+    
+            Set-Cookie: nn-session-id:12345;nn-device-id:67890
+
+    + Body
+    
+            {
+                "id": 1,
+                "username": "jason",
+                "display_name": "Jason Maher",
+                "email": "jason@jasonmaher.me",
+                "avatar_url": "about:blank"
+            }
+
++ Response 401 (application/json)
+
+        {
+            "status": 401,
+            "message": "Username 'jason' is already in use"
+        }
+
++ Response 401 (application/json)
+
+        {
+            "status": 401,
+            "message": "A user with that email address already exists"
+        }
+
++ Response 401 (application/json)
+
+        {
+            "status": 401,
+            "message": "Password does not meet critera",
+            "errors":
+                [
+                    "Too short"
+                ]
+        }
+
+### Login [POST /users/login]
+
+Login to an existing account
+
++ Request (application/json)
+
+    + Body
+            
+            {
+                "username": "jason",
+                "password": "secret",
+            }
+
++ Response 200
+
+    + Headers
+    
+            Set-Cookie: nn-session-id:12345;nn-device-id:67890
+            
++ Response 401 (application/json)
+
+        {
+            "status": 401,
+            "message": "Username and password do not match"
+        }
+
+### Read User [GET /users/{id}]
+
++ Response 200 (application/json)
+
+            {
+                "id": 1,
+                "username": "jason",
+                "display_name": "Jason Maher",
+                "email": "jason@jasonmaher.me",
+                "avatar_url": "about:blank"
+            }
 
