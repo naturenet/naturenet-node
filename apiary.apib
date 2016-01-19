@@ -56,7 +56,7 @@ on the existing data model.
 |                      |          |        |   IDEAS              |
 |   USER               |          |        |   * id               |
 |   * id           +-----------+--+----------> * submitter_id     |
-|   * display_name     |       |           |   * heading          |
+|   * display_name     |       |           |   * group            |
 |   * account_type     |       |           |   * content          |
 |   * username         |       |           |   * icon_url         |
 |   * password_hash    |       |           |   * [comments]       |
@@ -78,6 +78,7 @@ view to load because so much extraneous data is loaded.
 *See the `Data Structures` section in the markdown for more details (it doesn't get rendered
 into the main docs)*.
 
+*Assume all records have timestamp fields `created_at` and `updated_at` in addition to those listed*
 
 ### Activity::markup
 
@@ -162,20 +163,16 @@ new versions of the client and opens the door for sites to create new activities
 
 The result of the freeform nature of activities is that each observation will also need to record
 different data depening on what activity it was for. We can take a similar approach in storing the
-data with a structure that matches up to the markup for the activity. For example and observation
+data with a structure that matches up to the markup for the activity. For example an observation
 for the above activity could store it's data like this:
 
-```xml
-<observation-data activity-id="33">
-  <male-malard-count value="3"/>
-  <female-malard-count value="5"/>
-  <notes>
-    I saw a lot of birds!
-  </notes>
-</observation-data>
+```json
+{
+    "male-malard-count": 3,
+    "female-malard-count": 5,
+    "notes": "I saw a lot of birds!"
+}
 ```
-
-*NOTE: xml or json are equally viable here*
 
 This solves the same problem for how to render the observation for later viewing. We can take the
 same markup that would produce the activity view and insert the stored data into the correct
@@ -185,13 +182,13 @@ places.
 
 #### Site (object)
 
-+ id - unique id for the site
-+ name (string) - the name of the site for display
-+ description (string) - a description of the site
-+ location (object, optional) - a central location for the whole site
++ id (required) - unique id for the site
++ name (string, required) - the name of the site for display
++ description (string, required) - a description of the site
++ location (object, required) - a central location for the whole site
     + latitude (number)
     + longitude (number)
-+ activities (array) - all activities available at this site
++ activities (array, required) - all activities available at this site, may be empty
     + id - unique id for the activity, composite of the site_id and the position in the activities array
     + name (string) - the name of the activity
     + description (string) - a description of the activity
@@ -203,140 +200,596 @@ places.
 
 #### User
 
-+ id - unique id for the user
-+ display_name (string) - the name the user wants displayed on their posts
-+ account_type (object) - the login account type of the user
-+ username (string) - the username for login purposes, content depends on account type
-+ password_hash (string) - stored hash of the users password if their account is local
-+ password_salt (string) - user-unique salt used to generate the hash
-+ email (string) - the users email address
-+ avatar_url (string) - location of the users avatar image
-+ content_text (string) - the text of the consent form this user accepted
-+ affiliation (object)
++ id (required) - unique id for the user
++ display_name (string, required) - the name the user wants displayed on their posts
++ account_type (object, required) - the login account type of the user
++ username (string, required) - the username for login purposes, content depends on account type
++ password_hash (string, required) - stored hash of the users password if their account is local
++ password_salt (string, required) - user-unique salt used to generate the hash
++ email (string, required) - the users email address
++ avatar_url (string, required) - location of the users avatar image
++ content_text (string, required) - the text of the consent form this user accepted
++ affiliation (object, optional)
 
 #### Observation
 
-+ id - unique id for the observation
-+ activity_id - the id of the activity this observation is for
++ id (required) - unique id for the observation
++ activity_id (required) - the id of the activity this observation is for
 + location (object, optional) - the location where the observation was made
     + latitude (number)
     + longitude (number)
-+ observer_id - the id of the user who made the observation
-+ data (object) - see the markup/data section
++ observer_id (required) - the id of the user who made the observation
++ data (object, required) - see the markup/data section
 
-#### Ideas
+#### Idea
 
-+ id - unique id for the idea
-+ submitter_id - the id of the user who submitted the idea
-+ group (string) - the group into which the idea was submitted
-+ idea (string) - the description of the idea
-+ icon_url (string) - location of the icon for this idea
-+ comments (array) - any comments on this idea
++ id (required) - unique id for the idea
++ submitter_id (required) - the id of the user who submitted the idea
++ group (string, required) - the group into which the idea was submitted
++ idea (string, required) - the description of the idea
++ icon_url (string, required) - location of the icon for this idea
++ comments (array, required) - any comments on this idea, may be empty
     + id - unique id of the comment
     + commenter_id - the id of the user who made the comment
     + comment (string) - the text of the comment
 
-## Observations Collection [/observations]
+## Sites [/sites]
 
-### List Observations [GET /observations/{?siteId}{?offset}{?limit}]
+Endpoints for loading site and activity data. Currently there is no way to create new sites or
+data via this API.
 
-Retrieves a list of observations for a site ordered by last updated returning 
-the most recent first. Can optionally return only a slice of the results to enable
-clients to handle pagination.
++ Attributes (Site)
 
-+ Parameters
-    + siteId: `1` (number, required) - The id of the site to load observations for
-    + offset: `10` (number, optional) - How far into the result set to start the list from.
-        + default: `0`
-    + limit: `5` (number, optional) - How many records to return from the offset.
-    
+### List Sites [GET /sites]
+
+List all the sites. The response will include the nested activities for each site but will strip out
+the `markup` attribute.
+
 + Response 200 (application/json)
 
         [
             {
-                "id": 123,
-                "activity_id": 1,
-                "user_id": 1,
-                "created_at": "2016-01-11T17:31:10+00:00",
-                "updated_at": "2016-01-11T17:31:10+00:00",
-                "description": "I did this!",
-                "location": "In the app this looks like a choice from a preset list based on the activity?"
+            "id": 1,
+            "name": "ACES",
+            "description": "Aspen Center for Environmental Studies (ACES)",
+            "location":
+                {
+                    "latitude": 39.1965355,
+                    "longitude": -106.8242489
+                },
+            "activities": 
+                [
+                    {  
+                        "id": 1,
+                        "name": "Count the Mallards",
+                        "description": "words words words...",
+                        "location":
+                            {
+                                "latitude": 39.1965355,
+                                "longitude": -106.8242489
+                            },
+                        "icon_url": "about:blank"
+                    }
+                ]
             },
             {
-                "id": 200,
-                "activity_id": 1,
-                "user_id": 1,
-                "created_at": "2016-01-11T17:31:10+00:00",
-                "updated_at": "2016-01-11T17:31:10+00:00",
-                "description": "foo",
-                "location": "bar"
-            }
-        ]
-        
-### Observations Near [GET /observations/near{?lon}{?lat}{?radius}]
-        
-Retrieves all observations near a location regardless of the site they belong to.
-
-+ parameters
-    + lat: `44.0` (number, required) - Latitude of the location to search around
-    + lon: `102.3` (number, required) - Longitude of the location to search around
-    + radius:`52.3` (number, optional) - The radius, in kilometers, around the center to find observations in.
-        + default: `100`
-
-+ response 200 (application/json)
-
-        [
-            {
-                "id": 123,
-                "activity_id": 1,
-                "user_id": 1,
-                "created_at": "2016-01-11T17:31:10+00:00",
-                "updated_at": "2016-01-11T17:31:10+00:00",
-                "description": "I did this!",
-                "location": "In the app this looks like a choice from a preset list based on the activity?"
-            },
-            {
-                "id": 200,
-                "activity_id": 1,
-                "user_id": 1,
-                "created_at": "2016-01-11T17:31:10+00:00",
-                "updated_at": "2016-01-11T17:31:10+00:00",
-                "description": "foo",
-                "location": "bar"
+            "id": 2,
+            "name": "RNCP",
+            "description": "RNCP
+            "location":
+                {
+                    "latitude": 39.1965355,
+                    "longitude": -106.8242489
+                },
+            "activities": []
             }
         ]
 
+### Read Site [GET /site/{id}]
 
-## Ideas Collection [/ideas]
-
-### List Ideas [GET /ideas{?offset}{?limit}{?allUsers}]
-
-Retrieves a list of design ideas either submitted by the user making the request (default) or
-from all users. The list is ordered so the most recent is returned first. Can optionally return 
-only a slice of the results to enable clients to handle pagination.
+Loads a single site including it's complete activites list.
 
 + Parameters
-    + offset: `10` (number, optional) - How far into the result set to start the list from.
-        + Default: `0`
-    + limit: `5` (number, optional) - How many records to return from the offset.
+    + id: `1` (required) - the id of the site to load
+    
++ Response 200 (application/json)
 
-+ response 200 (application/json)
+        {
+            "id": 1,
+            "name": "ACES",
+            "description": "Aspen Center for Environmental Studies (ACES)",
+            "location":
+                {
+                    "latitude": 39.1965355,
+                    "longitude": -106.8242489
+                },
+            "activities": 
+                [
+                    {  
+                        "id": 1,
+                        "name": "Count the Mallards",
+                        "description": "words words words...",
+                        "location":
+                            {
+                                "latitude": 39.1965355,
+                                "longitude": -106.8242489
+                            },
+                        "icon_url": "about:blank",
+                        "markup": "<content/>"
+                    }
+                ]
+            }
+            
+
+### Read Activity [GET /site/{siteId}/activities/{activityId}]
+
+Loads a single activity.
+
++ Parameters
+    + siteId: `1` (required) - the id of the site to load
+    + activityId: `1` (required) - the id of the activity to load
+
++ Response 200 (application/json)
+
+        {  
+            "id": 1,
+            "name": "Count the Mallards",
+            "description": "words words words...",
+            "location":
+                {
+                    "latitude": 39.1965355,
+                    "longitude": -106.8242489
+                },
+            "icon_url": "about:blank",
+            "markup": "<content/>"
+        }
+
+## Observations [/observations]
+
+Endpoints for performing CRUD operations on `Observation`s. All read operations can be performed
+without authentication but all create/update/delete actions require a logged in user. All list
+operations return the most recent records first.
+
++ Attributes (Observation)
+
+### List Observations For User [GET /observations/user/{id}{?offset}{?limit}]
+
+Lists all observations submitted by a user.
+
++ Parameters
+    + id: `1` (required) - the id of the user to find observations for
+    + offset: `10` (number, optional) - how far into the result set to start from.
+        + default: `0`
+    + limit: `5` (number, optional) - how many records to return from the offset.
+
++ Response 200 (application/json)
 
         [
             {
-                "id": 42,
-                "heading": "Wouldn't it be cool if...",
-                "idea": "Maintain aspect ratio for the photos uploaded",
-                "created_at": "2016-01-11T17:31:10+00:00",
-                "updated_at": "2016-01-11T17:31:10+00:00",
-                "user_id": 1
-            },
-            {
-                "id": 56,
-                "heading": "Wouldn't it be cool if...",
-                "idea": "Maintain aspect ratio for the photos uploaded",
-                "created_at": "2016-01-11T17:31:10+00:00",
-                "updated_at": "2016-01-11T17:31:10+00:00",
-                "user_id": 1
+                "id": 1,
+                "activity_id": 1,
+                "location":
+                    {
+                        "latitude": 39.1965355,
+                        "longitude": -106.8242489
+                    },
+                "observer_id": 1,
+                "data":
+                    {
+                        "male-malard-count": 3,
+                        "female-malard-count": 5,
+                        "notes": "I saw a lot of birds!"
+                    }
             }
         ]
+
+### List Observations For Activity [GET /observations/activity/{id}{?offset}{?limit}]
+
+List all the observations submitted for an activity.
+
++ Parameters
+    + id: `1` (required) - the id of the activity to find observations for
+    + offset: `10` (number, optional) - how far into the result set to start from.
+        + default: `0`
+    + limit: `5` (number, optional) - how many records to return from the offset.
+
++ Response 200 (application/json)
+
+        [
+            {
+                "id": 1,
+                "activity_id": 1,
+                "location":
+                    {
+                        "latitude": 39.1965355,
+                        "longitude": -106.8242489
+                    },
+                "observer_id": 1,
+                "data":
+                    {
+                        "male-malard-count": 3,
+                        "female-malard-count": 5,
+                        "notes": "I saw a lot of birds!"
+                    }
+            }
+        ]
+
+### List Observations For Site [GET /observations/site/{id}{?offset}{?limit}]
+
+List all the observations submitted for any activity in a site.
+
++ Parameters
+    + id: `1` (required) - the id of the site to find observations for
+    + offset: `10` (number, optional) - how far into the result set to start from.
+        + default: `0`
+    + limit: `5` (number, optional) - how many records to return from the offset.
+
++ Response 200 (application/json)
+
+        [
+            {
+                "id": 1,
+                "activity_id": 1,
+                "location":
+                    {
+                        "latitude": 39.1965355,
+                        "longitude": -106.8242489
+                    },
+                "observer_id": 1,
+                "data":
+                    {
+                        "male-malard-count": 3,
+                        "female-malard-count": 5,
+                        "notes": "I saw a lot of birds!"
+                    }
+            }
+        ]
+
+### Read Observation [GET /observations/{id}]
+
++ Parameters
+    + id: `1` (required) - the id of the observation to fetch
+
++ Response 200 (application/json)
+
+### Create Observation [POST /observations]
+
++ Request (application/json)
+
+    + Headers
+    
+            Cookie: nn-session-id:12345;nn-device-id:67890
+    
+    + Body
+    
+            {
+                "activity_id": 1,
+                "location": {"latitude": 10, "longitude": 10},
+                "data": 
+                {
+                    "male-malard-count": 3,
+                    "female-malard-count": 5,
+                    "notes": "I saw a lot of birds!"
+                }
+            }
+
++ Response 201 (application/json)
+
+        {
+            "id": 1,
+            "activity_id": 1,
+            "location": {"latitude": 10, "longitude": 10},
+            "observer_id": 1,
+            "data": 
+            {
+                "male-malard-count": 3,
+                "female-malard-count": 5,
+                "notes": "I saw a lot of birds!"
+            }
+        }
+
++ Response 401 (application/json)
+
+        {
+            "status": 401, 
+            "message": "You must be logged on to create an observation"
+        }
+
+
+### Update Observation [PUT /observations/{id}]
+
++ Parameters
+    + id: `1` (required) - the id of the observation to update
+    
++ Request (application/json)
+
+    + Headers
+    
+            Cookie: nn-session-id:12345;nn-device-id:67890
+    
+    + Body
+    
+            {
+                "location": {"latitude": 20, "longitude": 11},
+                "data": 
+                {
+                    "male-malard-count": 5,
+                    "female-malard-count": 3,
+                    "notes": "I saw a lot of not-birds!"
+                }
+            }
+
++ Response 200 (application/json)
+
+        {
+            "id": 1,
+            "activity_id": 1,
+            "location": {"latitude": 20, "longitude": 11},
+                "data": 
+                {
+                    "male-malard-count": 5,
+                    "female-malard-count": 3,
+                    "notes": "I saw a lot of not-birds!"
+                }
+        }
+
++ Response 401 (application/json)
+
+        {
+            "status": 401, 
+            "message": "You must be logged on to modify an observation"
+        }
+        
++ Response 403 (application/json)
+
+        {
+            "status": 401, 
+            "message": "Cannot modify another users observations"
+        }
+
+### Delete Observation [DELETE /observations/{id}]
+
++ Parameters
+    + id: `1` (required) - the id of the observation to update
+    
++ Request
+
+    + Headers
+    
+            Cookie: nn-session-id:12345;nn-device-id:67890
+
++ Response 200
+
++ Response 401 (application/json)
+
+        {
+            "status": 401, 
+            "message": "You must be logged on to delete an observation"
+        }
+        
++ Response 403 (application/json)
+
+        {
+            "status": 401, 
+            "message": "Cannot delete another users observations"
+        }
+
+## Ideas [/ideas]
+
+Endpoints for performing CRUD operations on `Idea`s. All read operations can be performed
+without authentication but all create/update/delete actions require a logged in user.
+Commenting on an idea also requires a logged in user. All list operations return the most 
+recent records first.
+
++ Attributes (Idea)
+
+### List Ideas [GET /ideas{?offset}{?limit}]
+
+List all ideas that have been submitted.
+
++ Parameters
+    + offset: `10` (number, optional) - how far into the result set to start the list from.
+        + Default: `0`
+    + limit: `5` (number, optional) - how many records to return from the offset.
+
++ Response 200 (application/json)
+
+        [
+            {
+                "id": 1,
+                "submitter_id": 1,
+                "group": "Wouldn't it be cool if...",
+                "content": "Writing the docs made the API happen?",
+                "icon_url": "about:blank",
+                "comments": []
+            }
+        ]
+
+### List Ideas For User [GET /ideas/user/{id}{?offset}{?limit}]
+
+List all ideas submitted by a user.
+
++ Parameters
+    + id: `1` (number, required) - the id of the user to fetch ideas for
+    + offset: `10` (number, optional) - how far into the result set to start the list from.
+        + Default: `0`
+    + limit: `5` (number, optional) - how many records to return from the offset.
+
++ Response 200 (application/json)
+
+        [
+            {
+                "id": 1,
+                "submitter_id": 1,
+                "group": "Wouldn't it be cool if...",
+                "content": "Writing the docs made the API happen?",
+                "icon_url": "about:blank",
+                "comments": []
+            }
+        ]
+        
+### Read Idea [GET /ideas/{id}]
+
++ Parameters
+    + id: `1` (number, required) - the id of the idea
+
++ Response 200 (application/json)
+
+        {
+            "id": 1,
+            "submitter_id": 1,
+            "group": "Wouldn't it be cool if...",
+            "content": "Writing the docs made the API happen?",
+            "icon_url": "about:blank",
+            "comments": []
+        }
+        
+### Create Idea [POST /ideas]
+
++ Request
+
+    + Headers
+    
+            Cookie: nn-session-id:12345;nn-device-id:67890
+        
+    + Body
+    
+            {
+                "group": "Wouldn't it be cool if...",
+                "content": "Writing the docs made the API happen?",
+                "icon_url": "about:blank"
+            }
+
++ Response 201 (application/json)
+
+        {
+            "id": 1,
+            "submitter_id": 1,
+            "group": "Wouldn't it be cool if...",
+            "content": "Writing the docs made the API happen?",
+            "icon_url": "about:blank",
+            "comments": []
+        }
+        
++ Response 401 (application/json)
+
+        {
+            "status": 401, 
+            "message": "You must be logged on to create an idea"
+        }
+
+### Update Idea [PUT /ideas/{id}]
+
++ Parameters
+    + id: `1` (number, required) - the id of the idea
+
++ Request
+
+    + Headers
+    
+            Cookie: nn-session-id:12345;nn-device-id:67890
+        
+    + Body
+    
+            {
+                "group": "Wouldn't it be cool if...",
+                "content": "You could update things",
+            }
+
++ Response 200 (application/json)
+
+        {
+            "id": 1,
+            "submitter_id": 1,
+            "group": "Wouldn't it be cool if...",
+            "content": "You could update things",
+            "icon_url": "about:blank",
+            "comments": []
+        }
+        
++ Response 401 (application/json)
+
+        {
+            "status": 401, 
+            "message": "You must be logged on to create an idea"
+        }
+        
++ Response 401 (application/json)
+
+        {
+            "status": 403, 
+            "message": "You cannot modify another users ideas"
+        }
+        
+    
+### Delete Idea [DELETE /ideas/{id}]
+
++ Parameters
+    + id: `1` (number, required) - the id of the idea
+
++ Request
+
+    + Headers
+    
+            Cookie: nn-session-id:12345;nn-device-id:67890
+
++ Response 200 (application/json)
+        
++ Response 401 (application/json)
+
+        {
+            "status": 401, 
+            "message": "You must be logged on to delete an idea"
+        }
+        
++ Response 403 (application/json)
+
+        {
+            "status": 403, 
+            "message": "You cannot delete another users ideas"
+        }
+
+### Comment On Idea [POST /ideas/{id}/comment]
+
++ Parameters
+    + id: `1` (number, required) - the id of the idea
+
++ Request
+
+    + Headers
+    
+            Cookie: nn-session-id:12345;nn-device-id:67890
+        
+    + Body
+    
+            {
+                "comment": "+1",
+            }
+
++ Response 201 (application/json)
+
+        {
+            "id": 1,
+            "submitter_id": 1,
+            "group": "Wouldn't it be cool if...",
+            "content": "Writing the docs made the API happen?",
+            "icon_url": "about:blank",
+            "comments": 
+                [
+                    {
+                        "id": 1,
+                        "commenter_id": 2,
+                        "comment": "+1"
+                    }
+                ]
+        }
+        
++ Response 401 (application/json)
+
+        {
+            "status": 401, 
+            "message": "You must be logged on to comment on an idea"
+        }
+
+
+
