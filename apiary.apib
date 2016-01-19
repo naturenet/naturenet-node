@@ -9,21 +9,232 @@ creative ways in which people can contribute to sustainable bio-diversity.
 
 ----
 
-## Design Notes
+# Group Existing API
 
-Even though the API is described here as belonging to different data collections
-I know that currently everything is actually stored as 'Note'. Even if the data
-storage remains the same it would be beneficial to do the data filtering/transformation
-on the server to produce entities something like those described below. That way, 
-regardless of design decisions on the backend, we can present a semantic API to the 
-clients and avoid sending huge amounts of data on the wire.
+The section documents the existing API and data model.
 
-Also take the example responses with a grain of salt since I actually have no idea
-what data is stored or how the app/www uses it.
+## Data Model
 
-> Jason
+> Can someone more familiar with how `Note`'s are structured fill this in?
+> 
+> -- Jason
 
 ----
+
+# Group Proposed API
+
+This section describes the API we want post refactor/migration. Where possible when describing a
+new endpoint include how/if the results could be obtained by having the server do a transformation
+on the existing data model.
+
+## Data Model
+
+```
++----------------------+
+|                      |
+|   SITE               |
+|   * id               |                  +--------------------+
+|   * name             |                  |                    |
+|   * description      |                  |   OBSERVATION      |
+|   * location         |                  |   * id             |
+|     * latitude       |        +-----------> * activity_id    |
+|     * longitude      |        |         |   * location       |
+|   * [activities]     |        |         |     * latitude     |
+|     * id         +------------+         |     * longitude    |
+|     * name           |          +---------> * observer_id    |
+|     * description    |          |       |   * data           |
+|     * location       |          |       |                    |
+|       * latitude     |          |       |                    |
+|       * longitude    |          |       +--------------------+
+|     * icon_url       |          |
+|     * markup         |          |
+|                      |          |
+|                      |          |
++----------------------+          |
+                                  |        +----------------------+
++----------------------+          |        |                      |
+|                      |          |        |   IDEAS              |
+|   USER               |          |        |   * id               |
+|   * id           +-----------+--+----------> * submitter_id     |
+|   * display_name     |       |           |   * heading          |
+|   * account_type     |       |           |   * content          |
+|   * username         |       |           |   * icon_url         |
+|   * password_hash    |       |           |   * [comments]       |
+|   * password_salt    |       |           |     * id             |
+|   * email            |       +---------------> * commenter_id   |
+|   * avatar_url       |                   |     * comment        |
+|   * consent_text     |                   |                      |
+|   * affiliation      |                   |                      |
+|                      |                   +----------------------+
+|                      |
++----------------------+
+```
+
+In comparison to the deeply nested way the data is stored now we can break it out into different models.
+This lets us use nesting where appropriate, `SITE::activities` and `IDEAS::comments` are goods fits,
+but use relations elswhere to we can avoid the problem we have now of having to wait ~9s for an observation
+view to load because so much extraneous data is loaded.
+
+*See the `Data Structures` section in the markdown for more details (it doesn't get rendered
+into the main docs)*.
+
+
+### Activity::markup
+
+Each activity is potentially unique in how many and what types of observations it wants the user
+to perform. Currently the iOS client (at least) has each different type of observation baked into
+it as a different view. When a user selects the activity it does a lookup on the type and loads the
+correct native view.
+
+This will end up requiring a unique implementation of the view per platform, per activity. As more
+sites and more activities and/or new observation types are created the work to support them is multiplied
+by the number of platforms we have clients for.
+
+Instead of doing this we could have each activity specify in markup the types of controls it uses and
+their layout. For example:
+
+```html
+<activity id="33">
+  <section name="about">
+    <label>About this activity</label>
+    <p>
+      The mallard is a species of duck found throughout North America, 
+      Europe and Asia. They are a common sight at Hallam Lake and in 
+      any wetland habitat throughout the Aspen area. They are called 
+      “dabbling” ducks as they feed by tipping forwards in the water
+      in order to feed on underwater plants. The males can be identified 
+      by their iridescent green head and bright yellow bill, while 
+      females and juveniles are mottled brown with orangey-brown bills. 
+      How many of each can you see on Hallam Lake today?
+    </p>
+  </section>
+  <section name="males">
+    <label>Male Mallard</label>
+    <photo-select id="male-malard-count">
+      <image url="https://nature-net.org/api/images/that-mallard-1.jpg"/>
+      <select caption="Today">
+        <choice>0</choice>
+        <choice>1</choice>
+        <choice>2</choice>
+        <choice>3</choice>
+        <!-- imagine this goes up to 20 -->
+      </select>
+    </photo-select>
+    <footer>
+      <!-- Calls a stored query on the server to return the averages for the day -->
+      <p>Daily average this season: <span data-method="https://nature-net.org/api/activity/33/action/1" data-placeholder="--"></span></p>
+    </footer>
+  </section>
+  <section name="females">
+    <label>Female Mallard</label>
+    <photo-select>
+      <image url="https://nature-net.org/api/images/that-mallard-2.jpg"/>
+      <select caption="Today">
+        <choice>0</choice>
+        <choice>1</choice>
+        <choice>2</choice>
+        <choice>3</choice>
+        <!-- imagine this goes up to 20 as well -->
+      </select>
+    </photo-select id="female-malard-count">
+    <footer>
+      <!-- Calls a stored query on the server to return the averages for the day -->
+      <p>Daily average this season: <span data-method="https://nature-net.org/api/activity/33/action/2" data-placeholder="--"></span></p>
+    </footer>
+  </section>
+  <section>
+    <note-input id="notes">Notes</note-input>
+  </section>
+</activity>
+```
+
+This lets us avoid having to write new native client code for each new activity is one of two ways.
+
+1. The above code combined with angularjs directives could be rendered directly into a `WebView`.
+    With this approach all clients can share exactly the same code base +/- some setup code.
+2. Each client can maintain a library of native controls for each element type. Then the markup
+   could be parsed by the client and a native layout created dynamically and presented.
+
+This also allows us to change the way an activity is presented to users without the need to push
+new versions of the client and opens the door for sites to create new activities on their own.
+
+### Observation::data
+
+The result of the freeform nature of activities is that each observation will also need to record
+different data depening on what activity it was for. We can take a similar approach in storing the
+data with a structure that matches up to the markup for the activity. For example and observation
+for the above activity could store it's data like this:
+
+```xml
+<observation-data activity-id="33">
+  <male-malard-count value="3"/>
+  <female-malard-count value="5"/>
+  <notes>
+    I saw a lot of birds!
+  </notes>
+</observation-data>
+```
+
+*NOTE: xml or json are equally viable here*
+
+This solves the same problem for how to render the observation for later viewing. We can take the
+same markup that would produce the activity view and insert the stored data into the correct
+places.
+
+### Data Structures
+
+#### Site (object)
+
++ id - unique id for the site
++ name (string) - the name of the site for display
++ description (string) - a description of the site
++ location (object, optional) - a central location for the whole site
+    + latitude (number)
+    + longitude (number)
++ activities (array) - all activities available at this site
+    + id - unique id for the activity, composite of the site_id and the position in the activities array
+    + name (string) - the name of the activity
+    + description (string) - a description of the activity
+    + location (object, optional) - a specific location for the activity separate from the site
+        + latitude (number)
+        + longitude (number)
+    + icon_url (string) - location of the icon for this activity
+    + markup (string) - see markup/data section
+
+#### User
+
++ id - unique id for the user
++ display_name (string) - the name the user wants displayed on their posts
++ account_type (object) - the login account type of the user
++ username (string) - the username for login purposes, content depends on account type
++ password_hash (string) - stored hash of the users password if their account is local
++ password_salt (string) - user-unique salt used to generate the hash
++ email (string) - the users email address
++ avatar_url (string) - location of the users avatar image
++ content_text (string) - the text of the consent form this user accepted
++ affiliation (object)
+
+#### Observation
+
++ id - unique id for the observation
++ activity_id - the id of the activity this observation is for
++ location (object, optional) - the location where the observation was made
+    + latitude (number)
+    + longitude (number)
++ observer_id - the id of the user who made the observation
++ data (object) - see the markup/data section
+
+#### Ideas
+
++ id - unique id for the idea
++ submitter_id - the id of the user who submitted the idea
++ group (string) - the group into which the idea was submitted
++ idea (string) - the description of the idea
++ icon_url (string) - location of the icon for this idea
++ comments (array) - any comments on this idea
+    + id - unique id of the comment
+    + commenter_id - the id of the user who made the comment
+    + comment (string) - the text of the comment
 
 ## Observations Collection [/observations]
 
