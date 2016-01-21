@@ -1,0 +1,22 @@
+{
+  "name": "naturenet-dev",
+  "version": "1.0.0",
+  "description": "dev/beta server for NatureNet",
+  "main": "app.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "basic-auth": "^1.0.3",
+    "bcrypt": "^0.8.5",
+    "body-parser": "^1.14.2",
+    "express": "^4.13.3",
+    "lodash": "^4.0.0",
+    "mongoose": "^4.3.6",
+    "mongoose-hidden": "^0.5.1",
+    "mongoose-unique-validator": "^0.6.2",
+    "mongoose-validate": "0.0.5"
+  }
+}
