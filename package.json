@@ -4,7 +4,9 @@
   "description": "dev/beta server for NatureNet",
   "main": "app.js",
   "scripts": {
-    "test": "test"
+    "start": "node app.js",
+    "test": "DATABASE_URL=mongodb://localhost/test mocha --recursive",
+    "dev": "./dev-server"
   },
   "author": "",
   "license": "MIT",
@@ -18,5 +20,11 @@
     "mongoose-hidden": "^0.5.1",
     "mongoose-unique-validator": "^0.6.2",
     "mongoose-validate": "0.0.5"
+  },
+  "devDependencies": {
+    "chance": "^0.8.0",
+    "coffee-script": "^1.10.0",
+    "mocha": "^2.3.4",
+    "should": "^8.1.1"
   }
 }
