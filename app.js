@@ -13,6 +13,6 @@ app.use(auth.basic);
 app.use('/users', require('./lib/routes/user'));
 
 app.set('port', (process.env.PORT || 5000));
-app.listen(app.get('port'), function() {
+app.listen(app.get('port'), () => {
     console.log("NatureNet up and running on port %s", app.get('port'));
 });

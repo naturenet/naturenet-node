@@ -10,6 +10,9 @@
   },
   "author": "",
   "license": "MIT",
+  "engines": {
+    "node": "4.2.1"
+  },
   "dependencies": {
     "basic-auth": "^1.0.3",
     "bcrypt": "^0.8.5",
