@@ -4,35 +4,53 @@ var chance = require('chance').Chance();
 var mongoose = require('mongoose');
 var User = require('../../lib/models/user').Model;
 
+function random_user_data () {
+    return {
+        display_name: chance.word(),
+        password: chance.word(),
+        email: `${chance.word()}-test@nature-net.org`,
+        avatar_url: "https://s3.amazonaws.com/uifaces/faces/twitter/justinrhee/128.jpg",
+        consent_text: chance.paragraph(),
+        affiliation: chance.pick(["NatureNet"])
+    };
+}
+
+function with_user (callback) {
+    User.signup(random_user_data(), callback);
+}
+
 describe("User model", () => {
 
-    before( done => {
+    before(done => {
         mongoose.connect(process.env.DATABASE_URL, done);
     });
 
-    after( done => {
-        User.remove( (err, count) => {
-            if (err) {
-                throw err;
-            }
-            mongoose.connection.close(done);
+    after(done => {
+        User.remove((err, count) => {
+            if (err) done(err);
+            else mongoose.connection.close(done);
         });
-    })
+    });
 
     describe("signup", () => {
 
         it("should create a user with the submitted data", done => {
-            User.signup({
-                email: `${chance.word()}@naturenet.org`,
-                password: 'password',
-            }, done);
+            var data = random_user_data();
+            User.signup(data,
+            (err, user) => {
+                should.not.exist(err);
+                delete data.password;
+                for (var prop in data) {
+                    user.should.have.property(prop, data[prop]);
+                }
+                done();
+            });
         });
 
         it("should not store the plaintext password", done => {
-            User.signup({
-                email: `${chance.word()}@naturenet.org`,
-                password: 'password',
-            },
+            var data = random_user_data();
+            data.password = 'password';
+            User.signup(data,
             (err, user) => {
                 should.not.exist(err);
                 user.should.have.property('password');
@@ -42,27 +60,63 @@ describe("User model", () => {
         });
 
         it("should assign a display name based on email if not provided", done => {
-            var name = chance.word();
-            User.signup({
-                email: `${name}@naturenet.org`,
-                password: 'password',
-            },
+            var data = random_user_data();
+            delete data.display_name;
+            User.signup(data,
             (err, user) => {
                 should.not.exist(err);
                 user.should.have.property('display_name');
-                user.display_name.should.equal(name);
+                user.email.should.startWith(user.display_name);
                 done();
             });
         });
 
         it("should fail if the model is missing required data", done => {
-            User.signup({
-                password: 'password'
-            },
+            var data = random_user_data();
+            delete data.password;
+            delete data.email;
+            User.signup(data,
             (err, user) => {
-                err.should.exist;
+                should.exist(err);
                 done();
             });
+        });
+    });
+
+    describe("updates", () => {
+
+        it("should rehash passwords if they are changed", done => {
+            with_user((err, user) => {
+                should.not.exist(err);
+                var old = user.password;
+                var updated = chance.word();
+                user.password = updated;
+                user.save((err, user) => {
+                    should.not.exist(err);
+                    user.password.should.not.equal(old);
+                    user.password.should.not.match(new RegExp(updated));
+                    done();
+                });
+            });
+        });
+    });
+
+    describe("serialization", () => {
+
+        it("should not include the password in JSON", done => {
+            with_user((err, user) => {
+                should.not.exist(err);
+                user.toJSON().should.not.have.property('password');
+                done();
+            })
+        });
+
+        it("should not include the consent text in JSON", done => {
+            with_user((err, user) => {
+                should.not.exist(err);
+                user.toJSON().should.not.have.property('consent_text');
+                done();
+            })
         });
     });
 
