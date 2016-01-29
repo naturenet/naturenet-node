@@ -19,17 +19,16 @@ function with_user (callback) {
     User.signup(random_user_data(), callback);
 }
 
-describe("User model", () => {
+describe("User", () => {
 
     before(done => {
         mongoose.connect(process.env.DATABASE_URL, done);
     });
 
     after(done => {
-        User.remove((err, count) => {
-            if (err) done(err);
-            else mongoose.connection.close(done);
-        });
+        mongoose.connection.db.dropDatabase()
+            .then(result => mongoose.connection.close(done))
+            .catch(err => done(err));
     });
 
     describe("signup", () => {

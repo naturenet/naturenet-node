@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "DATABASE_URL=mongodb://localhost/test mocha --recursive",
+    "test": "DATABASE_URL=mongodb://localhost/naturenet-test mocha --recursive",
     "dev": "./dev-server"
   },
   "author": "",
