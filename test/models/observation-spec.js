@@ -5,7 +5,7 @@ var mongoose = require('mongoose');
 var User = require('../../lib/models/user').Model;
 var Site = require('../../lib/models/site').Model;
 var Activity = require('../../lib/models/activity').Model;
-var Observation = require('../../lib/models/Observation').Model;
+var Observation = require('../../lib/models/observation').Model;
 
 describe('Observation', () => {
 
