@@ -60,7 +60,7 @@ describe('Idea', () => {
         });
 
         it('can read an idea', done => {
-            Idea.submittedBy(submitter._id)
+            Idea.submitted_by(submitter._id)
                 .then(ideas => done())
                 .catch(error => done(error));
         });
@@ -116,7 +116,7 @@ describe('Idea', () => {
         });
 
         it('can add a comment', done => {
-            idea.addComment(commenter, "testing");
+            idea.add_comment(commenter, "testing");
             idea.save()
                 .then(result => {
                     result.comments.length.should.equal(1);
