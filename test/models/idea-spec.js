@@ -10,7 +10,7 @@ var User = require('../../lib/models/user').Model;
 describe('Idea', () => {
 
     before(done => {
-        mongoose.connect(process.env.DATABASE_URL, done);
+        mongoose.connect(process.env.TEST_DATABASE_URL, done);
     });
 
     var submitter, commenter;

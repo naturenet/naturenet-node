@@ -8,7 +8,7 @@ var Activity = require('../../lib/models/activity').Model;
 describe('Activity', () => {
 
     before(done => {
-        mongoose.connect(process.env.DATABASE_URL, done);
+        mongoose.connect(process.env.TEST_DATABASE_URL, done);
     });
 
     after(done => {

@@ -10,7 +10,7 @@ var Observation = require('../../lib/models/Observation').Model;
 describe('Observation', () => {
 
     before(done => {
-        mongoose.connect(process.env.DATABASE_URL, done);
+        mongoose.connect(process.env.TEST_DATABASE_URL, done);
     });
 
     after(done => {
