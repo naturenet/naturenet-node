@@ -1,4 +1,3 @@
-
 #********** node template**********
 
 # Logs
@@ -47,3 +46,7 @@ node_modules
 .Spotlight-V100
 .Trashes
 
+#********** Heroku files**********
+
+# per-dev local testing variables
+.env
