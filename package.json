@@ -21,7 +21,8 @@
     "lodash": "^4.0.0",
     "mongoose": "^4.3.6",
     "mongoose-unique-validator": "^0.6.2",
-    "mongoose-validate": "0.0.5"
+    "mongoose-validate": "0.0.5",
+    "request-promise": "^2.0.0"
   },
   "devDependencies": {
     "cases": "^0.1.1",

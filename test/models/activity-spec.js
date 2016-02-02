@@ -22,7 +22,7 @@ describe('Activity', () => {
         var testSite;
 
         before(done => {
-            testSite = Site.create({name: 'test-site', description: 'testing 123', location: [10, -10]},
+            Site.create({name: 'test-site', description: 'testing 123', location: [10, -10]},
                 (err, site) => {
                     if (err) done(err);
                     else {
