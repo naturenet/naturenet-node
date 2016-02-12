@@ -30,44 +30,38 @@ on the existing data model.
 ## Data Model
 
 ```
-+----------------------+
-|                      |
-|   SITE               |
-|   * id               |                  +--------------------+
-|   * name             |                  |                    |
-|   * description      |                  |   OBSERVATION      |
-|   * location         |                  |   * id             |
-|     * latitude       |        +-----------> * activity_id    |
-|     * longitude      |        |         |   * location       |
-|   * [activities]     |        |         |     * latitude     |
-|     * id         +------------+         |     * longitude    |
-|     * name           |          +---------> * observer_id    |
-|     * description    |          |       |   * data           |
-|     * location       |          |       |                    |
-|       * latitude     |          |       |                    |
-|       * longitude    |          |       +--------------------+
-|     * icon_url       |          |
-|     * markup         |          |
-|                      |          |
-|                      |          |
-+----------------------+          |
-                                  |        +----------------------+
-+----------------------+          |        |                      |
-|                      |          |        |   IDEAS              |
-|   USER               |          |        |   * id               |
-|   * id           +-----------+--+----------> * submitter_id     |
-|   * display_name     |       |           |   * group            |
-|   * account_type     |       |           |   * content          |
-|   * username         |       |           |   * icon_url         |
-|   * password_hash    |       |           |   * [comments]       |
-|   * password_salt    |       |           |     * id             |
-|   * email            |       +---------------> * commenter_id   |
-|   * avatar_url       |                   |     * comment        |
-|   * consent_text     |                   |                      |
-|   * affiliation      |                   |                      |
-|                      |                   +----------------------+
-|                      |
-+----------------------+
++----------------------+                      +----------------------+                  +---------------------+
+|                      |                      |                      |                  |                     |
+|   SITE               |                      |   ACTIVITY           |                  |   OBSERVATION       |
+|   * id         <------------------+         |   * id          <---------+             |   * id              |
+|   * name             |            |         |   * [sites]          |    |             |   * activity        |
+|   * description      |            +------------+  * site_id   <------+  +---------------+   * activity_id   |
+|   * location         |                      |     * location       | +------------------+   * site_id       |
+|                      |                      |   * name             |                  |   * location        |
+|                      |                      |   * description      |     +--------------+ * observer_id     |
++----------------------+                      |   * icon_url         |     |            |   * data            |
+                                              |   * markup           |     |            |   * [comments]      |
+                                              |                      |     |            |     * id            |
+                                              |                      |     +--------------+   * commenter_id  |
+                                              +----------------------+     |            |     * comment       |
+                                                                           |            |                     |
+                                                                           |            |                     |
++----------------------+                      +----------------------+     |            +---------------------+
+|                      |                      |                      |     |
+|   IDEA               |                      |   USER               |     |
+|   * id               |    +-------------------> * id        <------------+
+|   * submitter_id  +-------+                 |   * display_name     |
+|   * group            |    |                 |   * email            |
+|   * content          |    |                 |   * account          |
+|   * icon_url         |    |                 |     * type           |
+|   * [comments]       |    |                 |     * credentials    |
+|     * id             |    |                 |       * {mixed}      |
+|     * commenter_id +------+                 |   * avatar_url       |
+|     * comment        |                      |   * consent_text     |
+|                      |                      |   * affiliation      |
+|                      |                      |                      |
++----------------------+                      |                      |
+                                              +----------------------+
 ```
 
 In comparison to the deeply nested way the data is stored now we can break it out into different models.
@@ -889,4 +883,3 @@ Login to an existing account
                 "email": "jason@jasonmaher.me",
                 "avatar_url": "about:blank"
             }
-
