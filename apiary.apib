@@ -9,6 +9,52 @@ creative ways in which people can contribute to sustainable bio-diversity.
 
 ----
 
+## Hosts
+
+The NatureNet data is stored in [Firebase](https://www.firebase.com). There are three apps available for different usages
+each has the same data model and endpoints as described here but contain different data sets.
+
+- Testing (`https://naturenet-testing.firebaseio.com`): 
+  No guaranteed contents. This app is used as a test target for the various clients and the heroku worker. Data can
+  be written to, or deleted from, this app at any time.
+  
+- Staging (`https://naturenet-staging.firebaseio.com`):
+  Mirrors the production database and may have additional testing data. This app is used as a target for beta or integration
+  testing of the applications. The heroku worker will mirror data from production into this app as it is written but the
+  contents are not guaranteed to match 100%.
+  
+- Production (`https://naturenet.firebaseio.com`):
+  This app contains the live data from published clients and should only be accessed via a client. It should not be used as
+  a target for any testing.
+
+All links and the interactive samples in this document are based on the `Staging` host.
+
+## Heroku Worker
+
+In addition to Firebase there is a NatureNet app hosted on Heroku which performs background data processing as well
+as providing some additional REST endpoints. As with the firebase databases there are three versions of the worker
+for the same purpose. Should full text search be required the heroku worker will host the 
+[ElasticSearch](https://www.elastic.co/products/elasticsearch) process.
+
+- Testing (`https://testing.nature-net.org`): 
+  REST endpoint are active and target the testing database. Does not perform any syncing.
+  
+- Staging (`https://staging.nature-net.org`): 
+  REST endpoints are active and target the staging database. Does not perform any syncing.
+  
+- Production (`https://api.nature-net.org`): 
+  REST endpoints are active and target the staging database. Watches the production database for events as
+  mirrors data create/update/delete into staging.
+
+> NOTE: The heroku app is not yet online.
+
+## HTTP Access and Native Clients
+
+Firebase provides both an HTTP REST API and native clients in a variety of languages. This documentation will as much as
+possible cover only the HTTP API with the exception being the section on location queries which requires a client. The
+sample requests here do not always show or make use of the full range of parameters available, be sure to read the
+[REST documentation](https://www.firebase.com/docs/rest/guide/).
+
 ## Data Model
 
 ```
@@ -62,7 +108,7 @@ creative ways in which people can contribute to sustainable bio-diversity.
 
 Location data is stored in the database using [GeoFire](https://github.com/firebase/geofire-js). Each
 entity with a `location` attribute will have the data saved as a longitude - latitude pair as well as
-as [geohash](https://en.wikipedia.org/wiki/Geohash). Every `location` attribute will have data structued 
+a [geohash](https://en.wikipedia.org/wiki/Geohash). Every `location` attribute will have data structued 
 as follows:
 
 ```
@@ -75,42 +121,7 @@ location: {
 Where `g` is the geohash of the location stored as a `String` and `l` is an array containing `[longitude, latitude]`
 values.
 
-## Hosts
-
-The NatureNet data is stored in [Firebase](https://www.firebase.com). There are three apps available for different usages
-each has the same data model and endpoints as described here but contain different data sets.
-
-- Testing (`https://naturenet-testing.firebaseio.com`): 
-  No guaranteed contents. This app is used as a test target for the various clients and the heroku worker. Data can
-  be written to, or deleted from, this app at any time.
-  
-- Staging (`https://naturenet-staging.firebaseio.com`):
-  Mirrors the production database and may have additional testing data. This app is used as a target for beta or integration
-  testing of the applications. The heroku worker will mirror data from production into this app as it is written but the
-  contents are not guaranteed to match 100%.
-  
-- Production (`https://naturenet.firebaseio.com`):
-  This app contains the live data from published clients and should only be accessed via a client. It should not be used as
-  a target for any testing.
-
-All links and the interactive samples in this document are based on the `Staging` host.
-
-## HTTP Access and Native Clients
-
-Firebase provides both an HTTP REST API and native clients in a variety of languages. This documentation will as much as
-possible cover only the HTTP API with the exception being the section on location queries which requires a client. The
-sample requests here do not always show or make use of the full range of parameters available, be sure to read the
-[REST documentation](https://www.firebase.com/docs/rest/guide/).
-
 ### Sites [/sites]
-
-The sites collection contains the basic data about each site that is part of NatureNet.
-
-Site data cannot be created via any of the apps.
-
-**Access**:
-- *read*: public, unauthenticated
-- *write*: forbidden
 
 ```
 +------------------------+
@@ -124,6 +135,14 @@ Site data cannot be created via any of the apps.
 |                        |
 +------------------------+
 ```
+
+The sites collection contains the basic data about each site that is part of NatureNet.
+
+Site data cannot be created via any of the apps.
+
+**Access**:
+- *read*: public, unauthenticated
+- *write*: forbidden
 
 + Attributes
     + id (string, required) - unique id for the site, set by the creator (not auto-generated)
@@ -187,17 +206,6 @@ Returns a single site record from the database.
 
 ### Activities [/activities]
 
-The activities collection contains all the structured activities that users can perform
-in order to submit observations. An activity record in this collection contains the basic
-description of the activity itself. Since an identical activity can be present in multiple
-sites location data for activites is stored separately in `Activity Locations`.
-
-Activity data cannot be created via any of the apps.
-
-**Access**:
-- *read*: public, unauthenticated
-- *write*: forbidden
-
 ```
 +----------------------+
 |                      |
@@ -210,6 +218,17 @@ Activity data cannot be created via any of the apps.
 |                      |
 +----------------------+
 ```
+
+The activities collection contains all the structured activities that users can perform
+in order to submit observations. An activity record in this collection contains the basic
+description of the activity itself. Since an identical activity can be present in multiple
+sites location data for activites is stored separately in `Activity Locations`.
+
+Activity data cannot be created via any of the apps.
+
+**Access**:
+- *read*: public, unauthenticated
+- *write*: forbidden
 
 **Template**
 
@@ -295,19 +314,10 @@ Returns a single activity record from the database.
             },
             "updated_at" : 1455592819273
         }
+
+### Activity Locations [/geo/activities]
         
 ### Observations [/observations]
-
-The observations collection contains all user submitted observations in the database.
-An observation is associated with both an `Activity` and a `Site` via an `ActivityLocation`
-record. Any user may submit an observation.
-
-**Access**:
-- *read*: public, unauthenticated
-- *write*:
-  - *create*: authenticated user
-  - *update*: authenticated creator only
-  - *delete*: authenticated creator only
 
 ```
 +------------------------+
@@ -326,6 +336,23 @@ record. Any user may submit an observation.
 |                        |
 +------------------------+
 ```
+
+The observations collection contains all user submitted observations in the database.
+An observation is associated with both an `Activity` and a `Site` via an `ActivityLocation`
+record. Any user may submit an observation.
+
+**Access**:
+- *read*: public, unauthenticated
+- *write*:
+  - *create*: authenticated user
+  - *update*: authenticated creator only
+  - *delete*: authenticated creator only
+
+**Data**
+
+Each observation contains data specific to the activity it was submitted for. The `data` attribute
+in an observation stores the actual user submitted data as a freeform object. There are no guarantees
+as to what structure this data will have.
 
 + Attributes
     + id (string, required) - unique autogenerated-id for the observation
@@ -481,3 +508,102 @@ Returns a single observation record from the database
             "updated_at" : 1455592892205
           }
         }
+        
+#### Create Observation [POST /observations.json]
+
+Submit a new observation for the current user. Observation records require their firebase
+key to be stored as part of the record, requests that do not contain the id will be rejected. 
+It is recommended to use a native client to achieve this:
+
+```
+var observations = new Firebase('https://naturenet-staging.firebaseio.com/observations');
+var record = observations.push();
+record.set({
+    id: record.key(),
+    // other attributes
+})
+```
+
+Alternatively the heroku worker provides an endpoint that will handle this on the clients
+behalf. To submit an observation via the worker do `POST https://staging.nature-net.org/observations`
+with the new observation data. The worker will ensure the id is set and will return the same
+result as firebase would.
+
++ Response 200 (application/json)
+
+#### Update Observation [PATCH /observations/{id}.json]
+
+Update a subset of an observation. A `PATCH` update will update just the keys/values present in the request. To replace an
+observation use `PUT` to the same URI.
+
+> NOTE: If you are updating the `data` object for an observation a `PATCH` request to `/observations/{id}` will 
+> overwrite the entire value of the data object. If you want to update just one part of the data object you should 
+> PATCH against the data object directly. e.g. `PATCH https://naturenet-staging.firebaseio.com/observations/{id}/data`
+
++ Parameters
+    + id: `-KAc5DPSlxBuRNlPaCMH` (required) - the id of the observation to update.
+
++ Request (application/json)
+
+    + Body
+
+            {
+                "data": { "patched": true },
+                "updated_at": { ".sv": "timestamp" }
+            }
+
++ Response 200 (application/json)
+
+        {
+          "data": {
+            "patched": true
+          },
+          "updated_at": 1455631866669
+        }
+
+#### Delete Observation [DELETE /observations/{id}.json]
+
+Deletes an observation and all associated comments from the database. Can only be performed by the user who submitted
+the observation.
+
++ Parameters
+    + id: `-KAc5DPSlxBuRNlPaCMH` (required) - the id of the observation to delete.
+    
++ Response 200 (application/json)
+
+### Ideas [/ideas]
+
+#### List Ideas [GET /ideas.json]
+
+#### Read Idea [GET /ideas/{id}.json]
+
+#### Create Idea [POST /ideas.json]
+
+#### Update Idea [PATCH /ideas/{id}.json]
+
+#### Delete Idea [DELETE /ideas/{id}.json]
+
+### Users [/users]
+
+#### Read User [GET /users/{id}.json]
+
+#### Update User [PATCH /users/{id}.json]
+
+#### Delete User
+
+#### Signup
+
+##### Email Password Account
+
+##### Google Account
+
+##### Facebook Account
+
+
+### Commenting [/]
+
+#### Create Comment [POST /{commentable}/comments]
+
+#### Update Comment [PATCH /{commentable}/comments/{id}]
+
+#### Delete Comment [POST /{commentable}/comments/{id}]
