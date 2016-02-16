@@ -9,877 +9,475 @@ creative ways in which people can contribute to sustainable bio-diversity.
 
 ----
 
-# Group Existing API
-
-The section documents the existing API and data model.
-
-## Data Model
-
-> Can someone more familiar with how `Note`'s are structured fill this in?
->
-> -- Jason
-
-----
-
-# Group Proposed API
-
-This section describes the API we want post refactor/migration. Where possible when describing a
-new endpoint include how/if the results could be obtained by having the server do a transformation
-on the existing data model.
-
 ## Data Model
 
 ```
-+----------------------+                      +----------------------+                  +---------------------+
-|                      |                      |                      |                  |                     |
-|   SITE               |                      |   ACTIVITY           |                  |   OBSERVATION       |
-|   * id         <------------------+         |   * id          <---------+             |   * id              |
-|   * name             |            |         |   * [sites]          |    |             |   * activity        |
-|   * description      |            +------------+  * site_id   <------+  +---------------+   * activity_id   |
-|   * location         |                      |     * location       | +------------------+   * site_id       |
-|                      |                      |   * name             |                  |   * location        |
-|                      |                      |   * description      |     +--------------+ * observer_id     |
-+----------------------+                      |   * icon_url         |     |            |   * data            |
-                                              |   * markup           |     |            |   * [comments]      |
-                                              |                      |     |            |     * id            |
-                                              |                      |     +--------------+   * commenter_id  |
-                                              +----------------------+     |            |     * comment       |
-                                                                           |            |                     |
-                                                                           |            |                     |
-+----------------------+                      +----------------------+     |            +---------------------+
-|                      |                      |                      |     |
-|   IDEA               |                      |   USER               |     |
-|   * id               |    +-------------------> * id        <------------+
-|   * submitter_id  +-------+                 |   * display_name     |
-|   * group            |    |                 |   * email            |
-|   * content          |    |                 |   * account          |
-|   * icon_url         |    |                 |     * type           |
-|   * [comments]       |    |                 |     * credentials    |
-|     * id             |    |                 |       * {mixed}      |
-|     * commenter_id +------+                 |   * avatar_url       |
-|     * comment        |                      |   * consent_text     |
-|                      |                      |   * affiliation      |
-|                      |                      |                      |
-+----------------------+                      |                      |
-                                              +----------------------+
++------------------------+                    +----------------------+
+|                        |                    |                      |
+|   SITE                 |                    |   ACTIVITY           |
+|   * id           <----------------------+   |   * id          <-----------+
+|   * name               |                |   |   * name             |      |
+|   * description        |                |   |   * description      |      |
+|   * location           |                |   |   * icon_url         |      |
+|                        |                |   |   * template         |      |
+|                        |                |   |                      |      |
++------------------------+                |   +----------------------+      |
+                                          |                                 |
+                                          |                                 |
++------------------------+                |   +----------------------+      |
+|                        |                |   |                      |      |
+|   IDEA                 |                |   |   ACTIVITY_LOCATION  |      |
+|   * id                 |    +---------------->  * id               |      |
+|   * group              |    |           |   |   * activity    +-----------+
+|   * content            |    |           +----+  * site             |
+|   * icon_url           |    |               |   * location         |
+|   * submitter     +----------------+        |                      |
+|   * [comments]         |    |      |        |                      |
+|     * id               |    |      |        +----------------------+
+|     * commenter   +----------------+
+|     * comment          |    |      |
+|                        |    |      |        +----------------------+
+|                        |    |      |        |                      |
++------------------------+    |      |        |   USER               |
+                              |      +--------->  * id               |
+                              |      |        |   * display_name     |
++------------------------+    |      |        |   * avatar           |
+|                        |    |      |        |   * email            |
+|   OBSERVATION          |    |      |        |   * consent          |
+|   * id                 |    |      |        |                      |
+|   * activity_location +-----+      |        |                      |
+|   * observer          +------------+        +----------------------+
+|   * location           |           |
+|   * data               |           |
+|   * [comments]         |           |
+|     * id               |           |
+|     * commenter       +------------+
+|     * comment          |
+|                        |
+|                        |
++------------------------+
 ```
 
-In comparison to the deeply nested way the data is stored now we can break it out into different models.
-This lets us use nesting where appropriate, `SITE::activities` and `IDEAS::comments` are goods fits,
-but use relations elswhere to we can avoid the problem we have now of having to wait ~9s for an observation
-view to load because so much extraneous data is loaded.
+### Location Data
 
-*See the `Data Structures` section in the markdown for more details (it doesn't get rendered
-into the main docs)*.
+Location data is stored in the database using [GeoFire](https://github.com/firebase/geofire-js). Each
+entity with a `location` attribute will have the data saved as a longitude - latitude pair as well as
+as [geohash](https://en.wikipedia.org/wiki/Geohash). Every `location` attribute will have data structued 
+as follows:
 
-*Assume all records have timestamp fields `created_at` and `updated_at` in addition to those listed*
-
-### Activity::markup
-
-Each activity is potentially unique in how many and what types of observations it wants the user
-to perform. Currently the iOS client (at least) has each different type of observation baked into
-it as a different view. When a user selects the activity it does a lookup on the type and loads the
-correct native view.
-
-This will end up requiring a unique implementation of the view per platform, per activity. As more
-sites and more activities and/or new observation types are created the work to support them is multiplied
-by the number of platforms we have clients for.
-
-Instead of doing this we could have each activity specify in markup the types of controls it uses and
-their layout. For example:
-
-```html
-<activity id="33">
-  <section name="about">
-    <label>About this activity</label>
-    <p>
-      The mallard is a species of duck found throughout North America,
-      Europe and Asia. They are a common sight at Hallam Lake and in
-      any wetland habitat throughout the Aspen area. They are called
-      “dabbling” ducks as they feed by tipping forwards in the water
-      in order to feed on underwater plants. The males can be identified
-      by their iridescent green head and bright yellow bill, while
-      females and juveniles are mottled brown with orangey-brown bills.
-      How many of each can you see on Hallam Lake today?
-    </p>
-  </section>
-  <section name="males">
-    <label>Male Mallard</label>
-    <photo-select id="male-malard-count">
-      <image url="https://nature-net.org/api/images/that-mallard-1.jpg"/>
-      <select caption="Today">
-        <choice>0</choice>
-        <choice>1</choice>
-        <choice>2</choice>
-        <choice>3</choice>
-        <!-- imagine this goes up to 20 -->
-      </select>
-    </photo-select>
-    <footer>
-      <!-- Calls a stored query on the server to return the averages for the day -->
-      <p>Daily average this season: <span data-method="https://nature-net.org/api/activity/33/action/1" data-placeholder="--"></span></p>
-    </footer>
-  </section>
-  <section name="females">
-    <label>Female Mallard</label>
-    <photo-select>
-      <image url="https://nature-net.org/api/images/that-mallard-2.jpg"/>
-      <select caption="Today">
-        <choice>0</choice>
-        <choice>1</choice>
-        <choice>2</choice>
-        <choice>3</choice>
-        <!-- imagine this goes up to 20 as well -->
-      </select>
-    </photo-select id="female-malard-count">
-    <footer>
-      <!-- Calls a stored query on the server to return the averages for the day -->
-      <p>Daily average this season: <span data-method="https://nature-net.org/api/activity/33/action/2" data-placeholder="--"></span></p>
-    </footer>
-  </section>
-  <section>
-    <note-input id="notes">Notes</note-input>
-  </section>
-</activity>
 ```
-
-This lets us avoid having to write new native client code for each new activity is one of two ways.
-
-1. The above code combined with angularjs directives could be rendered directly into a `WebView`.
-    With this approach all clients can share exactly the same code base +/- some setup code.
-2. Each client can maintain a library of native controls for each element type. Then the markup
-   could be parsed by the client and a native layout created dynamically and presented.
-
-This also allows us to change the way an activity is presented to users without the need to push
-new versions of the client and opens the door for sites to create new activities on their own.
-
-### Observation::data
-
-The result of the freeform nature of activities is that each observation will also need to record
-different data depening on what activity it was for. We can take a similar approach in storing the
-data with a structure that matches up to the markup for the activity. For example an observation
-for the above activity could store it's data like this:
-
-```json
-{
-    "male-malard-count": 3,
-    "female-malard-count": 5,
-    "notes": "I saw a lot of birds!"
+location: {
+    g: "xp7emzkmpw"
+    l: [41.39326, 140.18072]
 }
 ```
 
-This solves the same problem for how to render the observation for later viewing. We can take the
-same markup that would produce the activity view and insert the stored data into the correct
-places.
+Where `g` is the geohash of the location stored as a `String` and `l` is an array containing `[longitude, latitude]`
+values.
 
-### Data Structures
+## Hosts
 
-#### Site (object)
+The NatureNet data is stored in [Firebase](https://www.firebase.com). There are three apps available for different usages
+each has the same data model and endpoints as described here but contain different data sets.
 
-+ id (required) - unique id for the site
-+ name (string, required) - the name of the site for display
-+ description (string, required) - a description of the site
-+ location (object, required) - a central location for the whole site
-    + latitude (number)
-    + longitude (number)
-+ activities (array, required) - all activities available at this site, may be empty
-    + id - unique id for the activity, composite of the site_id and the position in the activities array
-    + name (string) - the name of the activity
-    + description (string) - a description of the activity
-    + location (object, optional) - a specific location for the activity separate from the site
-        + latitude (number)
-        + longitude (number)
-    + icon_url (string) - location of the icon for this activity
-    + markup (string) - see markup/data section
+- Testing (`https://naturenet-testing.firebaseio.com`): 
+  No guaranteed contents. This app is used as a test target for the various clients and the heroku worker. Data can
+  be written to, or deleted from, this app at any time.
+  
+- Staging (`https://naturenet-staging.firebaseio.com`):
+  Mirrors the production database and may have additional testing data. This app is used as a target for beta or integration
+  testing of the applications. The heroku worker will mirror data from production into this app as it is written but the
+  contents are not guaranteed to match 100%.
+  
+- Production (`https://naturenet.firebaseio.com`):
+  This app contains the live data from published clients and should only be accessed via a client. It should not be used as
+  a target for any testing.
 
-#### User
+All links and the interactive samples in this document are based on the `Staging` host.
 
-+ id (required) - unique id for the user
-+ display_name (string, required) - the name the user wants displayed on their posts
-+ account_type (object, required) - the login account type of the user
-+ username (string, required) - the username for login purposes, content depends on account type
-+ password_hash (string, required) - stored hash of the users password if their account is local
-+ password_salt (string, required) - user-unique salt used to generate the hash
-+ email (string, required) - the users email address
-+ avatar_url (string, required) - location of the users avatar image
-+ content_text (string, required) - the text of the consent form this user accepted
-+ affiliation (object, optional)
+## HTTP Access and Native Clients
 
-#### Observation
+Firebase provides both an HTTP REST API and native clients in a variety of languages. This documentation will as much as
+possible cover only the HTTP API with the exception being the section on location queries which requires a client. The
+sample requests here do not always show or make use of the full range of parameters available, be sure to read the
+[REST documentation](https://www.firebase.com/docs/rest/guide/).
 
-+ id (required) - unique id for the observation
-+ activity_id (required) - the id of the activity this observation is for
-+ location (object, optional) - the location where the observation was made
-    + latitude (number)
-    + longitude (number)
-+ observer_id (required) - the id of the user who made the observation
-+ data (object, required) - see the markup/data section
+### Sites [/sites]
 
-#### Idea
+The sites collection contains the basic data about each site that is part of NatureNet.
 
-+ id (required) - unique id for the idea
-+ submitter_id (required) - the id of the user who submitted the idea
-+ group (string, required) - the group into which the idea was submitted
-+ idea (string, required) - the description of the idea
-+ icon_url (string, required) - location of the icon for this idea
-+ comments (array, required) - any comments on this idea, may be empty
-    + id - unique id of the comment
-    + commenter_id - the id of the user who made the comment
-    + comment (string) - the text of the comment
+Site data cannot be created via any of the apps.
 
-## Sites [/sites]
+**Access**:
+- *read*: public, unauthenticated
+- *write*: forbidden
 
-Endpoints for loading site and activity data. Currently there is no way to create new sites or
-data via this API.
+```
++------------------------+
+|                        |
+|   SITE                 |
+|   * id           <---------ACTIVITY_LOCATION::site
+|   * name               |
+|   * description        |
+|   * location           |
+|                        |
+|                        |
++------------------------+
+```
 
-+ Attributes (Site)
++ Attributes
+    + id (string, required) - unique id for the site, set by the creator (not auto-generated)
+    + name (string, required) - the name of the site for display
+    + description (string, required) - a description of the site
+    + location (object, required) - a central location for the whole site
 
-### List Sites [GET /sites]
+#### List Sites [GET /sites.json]
 
-List all the sites. The response will include the nested activities for each site but will strip out
-the `markup` attribute.
+Returns an object containing all the sites available in the database. The response will have a
+key-value pair for each site where the key is the site's `id` and the value is the record for
+that site.
 
 + Response 200 (application/json)
 
-        [
-            {
-            "id": 1,
-            "name": "ACES",
-            "description": "Aspen Center for Environmental Studies (ACES)",
-            "location":
-                {
-                    "latitude": 39.1965355,
-                    "longitude": -106.8242489
-                },
-            "activities":
-                [
-                    {
-                        "id": 1,
-                        "name": "Count the Mallards",
-                        "description": "words words words...",
-                        "location":
-                            {
-                                "latitude": 39.1965355,
-                                "longitude": -106.8242489
-                            },
-                        "icon_url": "about:blank"
-                    }
-                ]
+        {
+          "aces" : {
+            "created_at" : 1455588677934,
+            "description" : "Aspen Center for Environmental Studies",
+            "id" : "aces",
+            "location" : {
+              "g" : "9wuncpsbqe",
+              "l" : [ 39.1965355, -106.8242489 ]
             },
-            {
-            "id": 2,
-            "name": "RNCP",
-            "description": "RNCP
-            "location":
-                {
-                    "latitude": 39.1965355,
-                    "longitude": -106.8242489
-                },
-            "activities": []
-            }
-        ]
+            "name" : "ACES",
+            "updated_at" : 1455588677934
+          },
+          "shirakami" : {
+            "created_at" : 1455588677935,
+            "description" : "Shirakami Mountain National Park",
+            "id" : "shirakami",
+            "location" : {
+              "g" : "xp7ew7weu3",
+              "l" : [ 41.4163605, 140.2056501 ]
+            },
+            "name" : "白神山地",
+            "updated_at" : 1455588677935
+          }
+        }
 
-### Read Site [GET /site/{id}]
+#### Read Site [GET /sites/{id}.json]
 
-Loads a single site including it's complete activites list.
+Returns a single site record from the database.
 
 + Parameters
-    + id: `1` (required) - the id of the site to load
+    + id: `aces` (required) - the id of the site to read.
+    
++ Response 200 (application/json)
+
+        {
+            "created_at" : 1455588677934,
+            "description" : "Aspen Center for Environmental Studies",
+            "id" : "aces",
+            "location" : {
+              "g" : "9wuncpsbqe",
+              "l" : [ 39.1965355, -106.8242489 ]
+            },
+            "name" : "ACES",
+            "updated_at" : 1455588677934
+        }
+
+### Activities [/activities]
+
+The activities collection contains all the structured activities that users can perform
+in order to submit observations. An activity record in this collection contains the basic
+description of the activity itself. Since an identical activity can be present in multiple
+sites location data for activites is stored separately in `Activity Locations`.
+
+Activity data cannot be created via any of the apps.
+
+**Access**:
+- *read*: public, unauthenticated
+- *write*: forbidden
+
+```
++----------------------+
+|                      |
+|   ACTIVITY           |
+|   * id          <---------ACTIVITY_LOCATION::activity
+|   * name             |
+|   * description      |
+|   * icon_url         |
+|   * template         |
+|                      |
++----------------------+
+```
+
+**Template**
+
+> NOTE: Speculative
+
+The template value in an activity record is data to be consumed by the client application
+in order to determine how to display the activity to the user. The object will contain one
+key for each client type the value of which may be meaningful only to the client and might
+be a url for an HTML page to render or the name of a native view to load.
+
+example:
+```
+template: {
+    web: "http://www.naturenet.org/activities/ca.html",
+    ios: "http://www.naturenet.org/activities/ca-ios.html",
+    android: "http://www.naturenet.org/activities/ca-android.html"
+}
+```
+
++ Attributes
+    + id (string, required) - unique autogenerated-id for the activity
+    + name (string, required) - the name of the activity for display
+    + description (string, required) - a description of the activity
+    + icon_url (string, required) - an icon to represent the activity
+    + template (object, required) - the client template used to render the activity
+
+#### List Activities [GET /activities.json]
+
+Returns an object containing all activities available in the database. The response will have a
+key-value pair for each activitiy where the key is the activity's `id` and the value is the record for
+that activity.
 
 + Response 200 (application/json)
 
         {
-            "id": 1,
-            "name": "ACES",
-            "description": "Aspen Center for Environmental Studies (ACES)",
-            "location":
-                {
-                    "latitude": 39.1965355,
-                    "longitude": -106.8242489
-                },
-            "activities":
-                [
-                    {
-                        "id": 1,
-                        "name": "Count the Mallards",
-                        "description": "words words words...",
-                        "location":
-                            {
-                                "latitude": 39.1965355,
-                                "longitude": -106.8242489
-                            },
-                        "icon_url": "about:blank",
-                        "markup": "<content/>"
-                    }
-                ]
-            }
+          "-KAc4wauhnjXqSezmzq-" : {
+            "created_at" : 1455592819273,
+            "description" : "Bomrumsib evo hu no wifob dutu nacaksap fof nuva kanruh bakte ziwbam de fec. Gosen zesizimop esurece hemzosuc hakurof fafev ri manes uca ligerorag er dipuwnal cim fejoewa. Hu bip ravon mevmutdim alotecgal es egimupsiv ove wivzaf ijka tucufa vecel gepres rem av taudoom cezhoslok kif. Bu hicibu turtuv ib vesak gusmuz bo hibmuwav elmotmi libop uf sa. Gaf deun givatjaj ojizuve bapesu pudag vup ubpu ganot bapon ho omte du. Gaf zurmouho su ezo ejoeka pusjubi mivibmu fuvobo wiewo ijaj penjuko ji duadima hur ujtorik laijga.",
+            "icon_url" : "http://res.cloudinary.com/university-of-colorado/image/upload/v1431461261/3_Backyard_nxipz5.png",
+            "id" : "-KAc4wauhnjXqSezmzq-",
+            "name" : "activity-de",
+            "template" : {
+              "andriod" : "http://www.naturenet.org/activities/de-andriod",
+              "ios" : "http://www.naturenet.org/activities/de-ios",
+              "web" : "http://www.naturenet.org/activities/de"
+            },
+            "updated_at" : 1455592819273
+          },
+          "-KAc4wha5wfIDKSZUm3i" : {
+            "created_at" : 1455592819700,
+            "description" : "Gehize hahor abunev izair uza genko adozi na zokaj mavsizgo kuncufi ehipuvbuz lo razu. Elomuk zi cininmon arbov cuum vebcahoj zagi koakzod zudafopik tan od pu bunnuzdok safikmiv. Hib huko ha eh kir wu kapid anivili ko ti kifichef pizsuaw lidvutul pasfe rumafbe kepcemuw masuned ce. Piisuhil rona nij mig ge cicuke ateotubo viid la ju ratuji nem moncorme surez wubmegik sat milalho abi. Okogeih worsef ehdowe ro orpewo fa pewutij ne hergef sihhompe rubuwluk gotjulfik vowzu veupute we fa. Fovzu vudje ki ulutignu gupiuze kef ceftazo wuhmope emoorikap ulejekes ka cuhoh.",
+            "icon_url" : "http://res.cloudinary.com/university-of-colorado/image/upload/v1431461260/3_Who_ncnsij.png",
+            "id" : "-KAc4wha5wfIDKSZUm3i",
+            "name" : "activity-fuhruogi",
+            "template" : {
+              "andriod" : "http://www.naturenet.org/activities/fuhruogi-andriod",
+              "ios" : "http://www.naturenet.org/activities/fuhruogi-ios",
+              "web" : "http://www.naturenet.org/activities/fuhruogi"
+            },
+            "updated_at" : 1455592819700
+          }
+        }
+        
+#### Read Activity [GET /activities/{id}.json]
 
-
-### Read Activity [GET /site/{siteId}/activities/{activityId}]
-
-Loads a single activity.
+Returns a single activity record from the database.
 
 + Parameters
-    + siteId: `1` (required) - the id of the site to load
-    + activityId: `1` (required) - the id of the activity to load
+    + id: `-KAc4wauhnjXqSezmzq-` (required) - the id of the activity to read.
+    
++ Response 200 (application/json)
+
+        {
+            "created_at" : 1455592819273,
+            "description" : "Bomrumsib evo hu no wifob dutu nacaksap fof nuva kanruh bakte ziwbam de fec. Gosen zesizimop esurece hemzosuc hakurof fafev ri manes uca ligerorag er dipuwnal cim fejoewa. Hu bip ravon mevmutdim alotecgal es egimupsiv ove wivzaf ijka tucufa vecel gepres rem av taudoom cezhoslok kif. Bu hicibu turtuv ib vesak gusmuz bo hibmuwav elmotmi libop uf sa. Gaf deun givatjaj ojizuve bapesu pudag vup ubpu ganot bapon ho omte du. Gaf zurmouho su ezo ejoeka pusjubi mivibmu fuvobo wiewo ijaj penjuko ji duadima hur ujtorik laijga.",
+            "icon_url" : "http://res.cloudinary.com/university-of-colorado/image/upload/v1431461261/3_Backyard_nxipz5.png",
+            "id" : "-KAc4wauhnjXqSezmzq-",
+            "name" : "activity-de",
+            "template" : {
+              "andriod" : "http://www.naturenet.org/activities/de-andriod",
+              "ios" : "http://www.naturenet.org/activities/de-ios",
+              "web" : "http://www.naturenet.org/activities/de"
+            },
+            "updated_at" : 1455592819273
+        }
+        
+### Observations [/observations]
+
+The observations collection contains all user submitted observations in the database.
+An observation is associated with both an `Activity` and a `Site` via an `ActivityLocation`
+record. Any user may submit an observation.
+
+**Access**:
+- *read*: public, unauthenticated
+- *write*:
+  - *create*: authenticated user
+  - *update*: authenticated creator only
+  - *delete*: authenticated creator only
+
+```
++------------------------+
+|                        |
+|   OBSERVATION          |
+|   * id                 |
+|   * activity_location +-----ACTIVITY_LOCATION::id
+|   * observer          +-----USER::id
+|   * location           |
+|   * data               |
+|   * [comments]         |
+|     * id               |
+|     * commenter       +-----USER::id
+|     * comment          |
+|                        |
+|                        |
++------------------------+
+```
+
++ Attributes
+    + id (string, required) - unique autogenerated-id for the observation
+    + activity_location (string, required) - the id of the activity location pair this observation was recorded for
+    + observer (string, required) - the id of the user who submitted the observation
+    + location (object, required) - the location where the observation took place
+    + data (object, required) - freeform data submitted as part of the observation
+    + comments (object, required) - comments by other users on the data
+    
+#### List Observations [GET /observations.json{?orderBy}{?limitToFirst}]
+
+Returns an object containing all observations available in the database. The response will have a
+key-value pair for each observation where the key is the observation's `id` and the value is the record for
+that observation.
+
+> NOTE: The full set of observation data is potentially huge. You should never make a raw request against this
+> endpoint without some form or query and/or response limit. Data export is available for offline research.
+
++ Parameters
+    + orderBy: `"$key"` (string, optional) - what key to order the results by
+    + limitToFirst: `4` (number, optional) - limit the number of responses
 
 + Response 200 (application/json)
 
         {
-            "id": 1,
-            "name": "Count the Mallards",
-            "description": "words words words...",
-            "location":
-                {
-                    "latitude": 39.1965355,
-                    "longitude": -106.8242489
-                },
-            "icon_url": "about:blank",
-            "markup": "<content/>"
+          "-KAc5Cx1M6_kGnoOHriy" : {
+            "activity_location" : "-KAc4vmZ6F4dVunz5Yvw",
+            "comments" : {
+              "-KAc5PhyQsLi_vd6OllJ" : {
+                "comment" : "Fihov zava do ed wocka lej wuw jikoc ace goj kifkevak ildif vealeaca cafpu odna ve.",
+                "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
+                "id" : "-KAc5PhyQsLi_vd6OllJ"
+              },
+              "-KAc5S9-pjitmmQraJUu" : {
+                "comment" : "Hag aro bud rol go piduzum masu ocrujiho dausnet bi camme warupap nuvpum.",
+                "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
+                "id" : "-KAc5S9-pjitmmQraJUu"
+              },
+              "-KAc5SRJKPwtFvHo_E52" : {
+                "comment" : "Rarsag medirub soez gi vu zogek rit ripmure do kefero so no id jo bu.",
+                "commenter" : "13e2d376-249d-43b5-8b33-74ee689279b8",
+                "id" : "-KAc5SRJKPwtFvHo_E52"
+              }
+            },
+            "created_at" : 1455592890321,
+            "data" : {
+              "baz" : 2,
+              "ducks" : true,
+              "foo" : "bar"
+            },
+            "id" : "-KAc5Cx1M6_kGnoOHriy",
+            "location" : {
+              "g" : "xp7eemrewu",
+              "l" : [ 41.42595, 140.07529 ]
+            },
+            "observer" : "3480f925-c4fc-4576-b534-2b38d3fc6456",
+            "updated_at" : 1455592890321
+          },
+          "-KAc5D3K4jmr70FiqwjH" : {
+            "activity_location" : "-KAc4vMYMlYznb2jusY1",
+            "comments" : {
+              "-KAc5UvOoQcjiznIz0uG" : {
+                "comment" : "Luko ve virtafdiv wosepca tejdi ik wic nevan noz ro nugu moguvlu epode ladaf ra jiwkuhol.",
+                "commenter" : "08626fa9-7140-4b02-a635-f92870851396",
+                "id" : "-KAc5UvOoQcjiznIz0uG"
+              }
+            },
+            "created_at" : 1455592890789,
+            "data" : {
+              "baz" : 2,
+              "ducks" : true,
+              "foo" : "bar"
+            },
+            "id" : "-KAc5D3K4jmr70FiqwjH",
+            "location" : {
+              "g" : "xp7s5pfpwu",
+              "l" : [ 41.52826, 140.05675 ]
+            },
+            "observer" : "4446932b-c430-4d82-8768-435061b6b322",
+            "updated_at" : 1455592890789
+          },
+          "-KAc5DIhBq7myDffPENg" : {
+            "activity_location" : "-KAc4wd8ZfopkJnsQfkO",
+            "created_at" : 1455592891772,
+            "data" : {
+              "baz" : 2,
+              "ducks" : true,
+              "foo" : "bar"
+            },
+            "id" : "-KAc5DIhBq7myDffPENg",
+            "location" : {
+              "g" : "9wgywgkf0u",
+              "l" : [ 39.12955, -106.92337 ]
+            },
+            "observer" : "140abc29-b3b3-482b-9a6a-5ba4088aab8f",
+            "updated_at" : 1455592891772
+          },
+          "-KAc5DPSlxBuRNlPaCMH" : {
+            "activity_location" : "-KAc4uDmThJ-lXyXAKCC",
+            "comments" : {
+              "-KAc5Pt4r4hlT6_g-PPC" : {
+                "comment" : "Setoto uhuhat menurwef italib daj si mevpovub azcohun upcu huw rifdo hukvi tunruwet gadtojtul.",
+                "commenter" : "3480f925-c4fc-4576-b534-2b38d3fc6456",
+                "id" : "-KAc5Pt4r4hlT6_g-PPC"
+              }
+            },
+            "created_at" : 1455592892205,
+            "data" : {
+              "baz" : 2,
+              "ducks" : true,
+              "foo" : "bar"
+            },
+            "id" : "-KAc5DPSlxBuRNlPaCMH",
+            "location" : {
+              "g" : "9wup4n6mgz",
+              "l" : [ 39.23458, -106.78385 ]
+            },
+            "observer" : "9031b7a3-bc5a-4ae0-9113-9f392895c42c",
+            "updated_at" : 1455592892205
+          }
         }
 
-## Observations [/observations]
+#### Read Observation [GET /observations/{id}.json]
 
-Endpoints for performing CRUD operations on `Observation`s. All read operations can be performed
-without authentication but all create/update/delete actions require a logged in user. All list
-operations return the most recent records first.
-
-+ Attributes (Observation)
-
-### List Observations For User [GET /observations/user/{id}{?offset}{?limit}]
-
-Lists all observations submitted by a user.
+Returns a single observation record from the database
 
 + Parameters
-    + id: `1` (required) - the id of the user to find observations for
-    + offset: `10` (number, optional) - how far into the result set to start from.
-        + default: `0`
-    + limit: `5` (number, optional) - how many records to return from the offset.
-
-+ Response 200 (application/json)
-
-        [
-            {
-                "id": 1,
-                "activity_id": 1,
-                "location":
-                    {
-                        "latitude": 39.1965355,
-                        "longitude": -106.8242489
-                    },
-                "observer_id": 1,
-                "data":
-                    {
-                        "male-malard-count": 3,
-                        "female-malard-count": 5,
-                        "notes": "I saw a lot of birds!"
-                    }
-            }
-        ]
-
-### List Observations For Activity [GET /observations/activity/{id}{?offset}{?limit}]
-
-List all the observations submitted for an activity.
-
-+ Parameters
-    + id: `1` (required) - the id of the activity to find observations for
-    + offset: `10` (number, optional) - how far into the result set to start from.
-        + default: `0`
-    + limit: `5` (number, optional) - how many records to return from the offset.
-
-+ Response 200 (application/json)
-
-        [
-            {
-                "id": 1,
-                "activity_id": 1,
-                "location":
-                    {
-                        "latitude": 39.1965355,
-                        "longitude": -106.8242489
-                    },
-                "observer_id": 1,
-                "data":
-                    {
-                        "male-malard-count": 3,
-                        "female-malard-count": 5,
-                        "notes": "I saw a lot of birds!"
-                    }
-            }
-        ]
-
-### List Observations For Site [GET /observations/site/{id}{?offset}{?limit}]
-
-List all the observations submitted for any activity in a site.
-
-+ Parameters
-    + id: `1` (required) - the id of the site to find observations for
-    + offset: `10` (number, optional) - how far into the result set to start from.
-        + default: `0`
-    + limit: `5` (number, optional) - how many records to return from the offset.
-
-+ Response 200 (application/json)
-
-        [
-            {
-                "id": 1,
-                "activity_id": 1,
-                "location":
-                    {
-                        "latitude": 39.1965355,
-                        "longitude": -106.8242489
-                    },
-                "observer_id": 1,
-                "data":
-                    {
-                        "male-malard-count": 3,
-                        "female-malard-count": 5,
-                        "notes": "I saw a lot of birds!"
-                    }
-            }
-        ]
-
-### Read Observation [GET /observations/{id}]
-
-+ Parameters
-    + id: `1` (required) - the id of the observation to fetch
-
-+ Response 200 (application/json)
-
-### Create Observation [POST /observations]
-
-+ Request (application/json)
-
-    + Headers
-
-            Cookie: nn-session-id:12345;nn-device-id:67890
-
-    + Body
-
-            {
-                "activity_id": 1,
-                "location": {"latitude": 10, "longitude": 10},
-                "data":
-                {
-                    "male-malard-count": 3,
-                    "female-malard-count": 5,
-                    "notes": "I saw a lot of birds!"
-                }
-            }
-
-+ Response 201 (application/json)
-
-        {
-            "id": 1,
-            "activity_id": 1,
-            "location": {"latitude": 10, "longitude": 10},
-            "observer_id": 1,
-            "data":
-            {
-                "male-malard-count": 3,
-                "female-malard-count": 5,
-                "notes": "I saw a lot of birds!"
-            }
-        }
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "You must be logged on to create an observation"
-        }
-
-
-### Update Observation [PUT /observations/{id}]
-
-+ Parameters
-    + id: `1` (required) - the id of the observation to update
-
-+ Request (application/json)
-
-    + Headers
-
-            Cookie: nn-session-id:12345;nn-device-id:67890
-
-    + Body
-
-            {
-                "location": {"latitude": 20, "longitude": 11},
-                "data":
-                {
-                    "male-malard-count": 5,
-                    "female-malard-count": 3,
-                    "notes": "I saw a lot of not-birds!"
-                }
-            }
+    + id: `-KAc5DPSlxBuRNlPaCMH` (required) - the id of the observation to read.
 
 + Response 200 (application/json)
 
         {
-            "id": 1,
-            "activity_id": 1,
-            "location": {"latitude": 20, "longitude": 11},
-                "data":
-                {
-                    "male-malard-count": 5,
-                    "female-malard-count": 3,
-                    "notes": "I saw a lot of not-birds!"
-                }
+            "activity_location" : "-KAc4uDmThJ-lXyXAKCC",
+            "comments" : {
+              "-KAc5Pt4r4hlT6_g-PPC" : {
+                "comment" : "Setoto uhuhat menurwef italib daj si mevpovub azcohun upcu huw rifdo hukvi tunruwet gadtojtul.",
+                "commenter" : "3480f925-c4fc-4576-b534-2b38d3fc6456",
+                "id" : "-KAc5Pt4r4hlT6_g-PPC"
+              }
+            },
+            "created_at" : 1455592892205,
+            "data" : {
+              "baz" : 2,
+              "ducks" : true,
+              "foo" : "bar"
+            },
+            "id" : "-KAc5DPSlxBuRNlPaCMH",
+            "location" : {
+              "g" : "9wup4n6mgz",
+              "l" : [ 39.23458, -106.78385 ]
+            },
+            "observer" : "9031b7a3-bc5a-4ae0-9113-9f392895c42c",
+            "updated_at" : 1455592892205
+          }
         }
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "You must be logged on to modify an observation"
-        }
-
-+ Response 403 (application/json)
-
-        {
-            "status": 401,
-            "message": "Cannot modify another users observations"
-        }
-
-### Delete Observation [DELETE /observations/{id}]
-
-+ Parameters
-    + id: `1` (required) - the id of the observation to update
-
-+ Request
-
-    + Headers
-
-            Cookie: nn-session-id:12345;nn-device-id:67890
-
-+ Response 200
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "You must be logged on to delete an observation"
-        }
-
-+ Response 403 (application/json)
-
-        {
-            "status": 401,
-            "message": "Cannot delete another users observations"
-        }
-
-## Ideas [/ideas]
-
-Endpoints for performing CRUD operations on `Idea`s. All read operations can be performed
-without authentication but all create/update/delete actions require a logged in user.
-Commenting on an idea also requires a logged in user. All list operations return the most
-recent records first.
-
-+ Attributes (Idea)
-
-### List Ideas [GET /ideas{?offset}{?limit}]
-
-List all ideas that have been submitted.
-
-+ Parameters
-    + offset: `10` (number, optional) - how far into the result set to start the list from.
-        + Default: `0`
-    + limit: `5` (number, optional) - how many records to return from the offset.
-
-+ Response 200 (application/json)
-
-        [
-            {
-                "id": 1,
-                "submitter_id": 1,
-                "group": "Wouldn't it be cool if...",
-                "content": "Writing the docs made the API happen?",
-                "icon_url": "about:blank",
-                "comments": []
-            }
-        ]
-
-### List Ideas For User [GET /ideas/user/{id}{?offset}{?limit}]
-
-List all ideas submitted by a user.
-
-+ Parameters
-    + id: `1` (number, required) - the id of the user to fetch ideas for
-    + offset: `10` (number, optional) - how far into the result set to start the list from.
-        + Default: `0`
-    + limit: `5` (number, optional) - how many records to return from the offset.
-
-+ Response 200 (application/json)
-
-        [
-            {
-                "id": 1,
-                "submitter_id": 1,
-                "group": "Wouldn't it be cool if...",
-                "content": "Writing the docs made the API happen?",
-                "icon_url": "about:blank",
-                "comments": []
-            }
-        ]
-
-### Read Idea [GET /ideas/{id}]
-
-+ Parameters
-    + id: `1` (number, required) - the id of the idea
-
-+ Response 200 (application/json)
-
-        {
-            "id": 1,
-            "submitter_id": 1,
-            "group": "Wouldn't it be cool if...",
-            "content": "Writing the docs made the API happen?",
-            "icon_url": "about:blank",
-            "comments": []
-        }
-
-### Create Idea [POST /ideas]
-
-+ Request
-
-    + Headers
-
-            Cookie: nn-session-id:12345;nn-device-id:67890
-
-    + Body
-
-            {
-                "group": "Wouldn't it be cool if...",
-                "content": "Writing the docs made the API happen?",
-                "icon_url": "about:blank"
-            }
-
-+ Response 201 (application/json)
-
-        {
-            "id": 1,
-            "submitter_id": 1,
-            "group": "Wouldn't it be cool if...",
-            "content": "Writing the docs made the API happen?",
-            "icon_url": "about:blank",
-            "comments": []
-        }
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "You must be logged on to create an idea"
-        }
-
-### Update Idea [PUT /ideas/{id}]
-
-+ Parameters
-    + id: `1` (number, required) - the id of the idea
-
-+ Request
-
-    + Headers
-
-            Cookie: nn-session-id:12345;nn-device-id:67890
-
-    + Body
-
-            {
-                "group": "Wouldn't it be cool if...",
-                "content": "You could update things",
-            }
-
-+ Response 200 (application/json)
-
-        {
-            "id": 1,
-            "submitter_id": 1,
-            "group": "Wouldn't it be cool if...",
-            "content": "You could update things",
-            "icon_url": "about:blank",
-            "comments": []
-        }
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "You must be logged on to create an idea"
-        }
-
-+ Response 401 (application/json)
-
-        {
-            "status": 403,
-            "message": "You cannot modify another users ideas"
-        }
-
-
-### Delete Idea [DELETE /ideas/{id}]
-
-+ Parameters
-    + id: `1` (number, required) - the id of the idea
-
-+ Request
-
-    + Headers
-
-            Cookie: nn-session-id:12345;nn-device-id:67890
-
-+ Response 200 (application/json)
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "You must be logged on to delete an idea"
-        }
-
-+ Response 403 (application/json)
-
-        {
-            "status": 403,
-            "message": "You cannot delete another users ideas"
-        }
-
-### Comment On Idea [POST /ideas/{id}/comment]
-
-+ Parameters
-    + id: `1` (number, required) - the id of the idea
-
-+ Request
-
-    + Headers
-
-            Cookie: nn-session-id:12345;nn-device-id:67890
-
-    + Body
-
-            {
-                "comment": "+1",
-            }
-
-+ Response 201 (application/json)
-
-        {
-            "id": 1,
-            "submitter_id": 1,
-            "group": "Wouldn't it be cool if...",
-            "content": "Writing the docs made the API happen?",
-            "icon_url": "about:blank",
-            "comments":
-                [
-                    {
-                        "id": 1,
-                        "commenter_id": 2,
-                        "comment": "+1"
-                    }
-                ]
-        }
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "You must be logged on to comment on an idea"
-        }
-
-## Users [/users]
-
-Endpoints for handling user signup and login.
-
-### Signup [POST /users/signup]
-
-Creates a new user
-
-+ Request (application/json)
-
-    + Body
-
-            {
-                "username": "jason",
-                "display_name": "Jason Maher",
-                "email": "jason@jasonmaher.me",
-                "password": "secret",
-                "avatar_url": "about:blank"
-            }
-
-+ Response 201 (application/json)
-
-    + Headers
-
-            Set-Cookie: nn-session-id:12345;nn-device-id:67890
-
-    + Body
-
-            {
-                "id": 1,
-                "username": "jason",
-                "display_name": "Jason Maher",
-                "email": "jason@jasonmaher.me",
-                "avatar_url": "about:blank"
-            }
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "Username 'jason' is already in use"
-        }
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "A user with that email address already exists"
-        }
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "Password does not meet critera",
-            "errors":
-                [
-                    "Too short"
-                ]
-        }
-
-### Login [POST /users/login]
-
-Login to an existing account
-
-+ Request (application/json)
-
-    + Body
-
-            {
-                "username": "jason",
-                "password": "secret",
-            }
-
-+ Response 200
-
-    + Headers
-
-            Set-Cookie: nn-session-id:12345;nn-device-id:67890
-
-+ Response 401 (application/json)
-
-        {
-            "status": 401,
-            "message": "Username and password do not match"
-        }
-
-### Read User [GET /users/{id}]
-
-+ Response 200 (application/json)
-
-            {
-                "id": 1,
-                "username": "jason",
-                "display_name": "Jason Maher",
-                "email": "jason@jasonmaher.me",
-                "avatar_url": "about:blank"
-            }
