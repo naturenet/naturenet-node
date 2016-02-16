@@ -1,10 +1,10 @@
 FORMAT: 1A
-HOST: https://naturenet-mock.herokuapp.com
+HOST: https://naturenet-staging.firebaseio.com
 
 # NatureNet
 
-NatureNet is a citizen science project with a crowd-sourced design. 
-The goal to increase motivation for participation and to identify 
+NatureNet is a citizen science project with a crowd-sourced design.
+The goal to increase motivation for participation and to identify
 creative ways in which people can contribute to sustainable bio-diversity.
 
 ----
@@ -16,7 +16,7 @@ The section documents the existing API and data model.
 ## Data Model
 
 > Can someone more familiar with how `Note`'s are structured fill this in?
-> 
+>
 > -- Jason
 
 ----
@@ -93,13 +93,13 @@ their layout. For example:
   <section name="about">
     <label>About this activity</label>
     <p>
-      The mallard is a species of duck found throughout North America, 
-      Europe and Asia. They are a common sight at Hallam Lake and in 
-      any wetland habitat throughout the Aspen area. They are called 
+      The mallard is a species of duck found throughout North America,
+      Europe and Asia. They are a common sight at Hallam Lake and in
+      any wetland habitat throughout the Aspen area. They are called
       “dabbling” ducks as they feed by tipping forwards in the water
-      in order to feed on underwater plants. The males can be identified 
-      by their iridescent green head and bright yellow bill, while 
-      females and juveniles are mottled brown with orangey-brown bills. 
+      in order to feed on underwater plants. The males can be identified
+      by their iridescent green head and bright yellow bill, while
+      females and juveniles are mottled brown with orangey-brown bills.
       How many of each can you see on Hallam Lake today?
     </p>
   </section>
@@ -251,9 +251,9 @@ the `markup` attribute.
                     "latitude": 39.1965355,
                     "longitude": -106.8242489
                 },
-            "activities": 
+            "activities":
                 [
-                    {  
+                    {
                         "id": 1,
                         "name": "Count the Mallards",
                         "description": "words words words...",
@@ -285,7 +285,7 @@ Loads a single site including it's complete activites list.
 
 + Parameters
     + id: `1` (required) - the id of the site to load
-    
+
 + Response 200 (application/json)
 
         {
@@ -297,9 +297,9 @@ Loads a single site including it's complete activites list.
                     "latitude": 39.1965355,
                     "longitude": -106.8242489
                 },
-            "activities": 
+            "activities":
                 [
-                    {  
+                    {
                         "id": 1,
                         "name": "Count the Mallards",
                         "description": "words words words...",
@@ -313,7 +313,7 @@ Loads a single site including it's complete activites list.
                     }
                 ]
             }
-            
+
 
 ### Read Activity [GET /site/{siteId}/activities/{activityId}]
 
@@ -325,7 +325,7 @@ Loads a single activity.
 
 + Response 200 (application/json)
 
-        {  
+        {
             "id": 1,
             "name": "Count the Mallards",
             "description": "words words words...",
@@ -451,15 +451,15 @@ List all the observations submitted for any activity in a site.
 + Request (application/json)
 
     + Headers
-    
+
             Cookie: nn-session-id:12345;nn-device-id:67890
-    
+
     + Body
-    
+
             {
                 "activity_id": 1,
                 "location": {"latitude": 10, "longitude": 10},
-                "data": 
+                "data":
                 {
                     "male-malard-count": 3,
                     "female-malard-count": 5,
@@ -474,7 +474,7 @@ List all the observations submitted for any activity in a site.
             "activity_id": 1,
             "location": {"latitude": 10, "longitude": 10},
             "observer_id": 1,
-            "data": 
+            "data":
             {
                 "male-malard-count": 3,
                 "female-malard-count": 5,
@@ -485,7 +485,7 @@ List all the observations submitted for any activity in a site.
 + Response 401 (application/json)
 
         {
-            "status": 401, 
+            "status": 401,
             "message": "You must be logged on to create an observation"
         }
 
@@ -494,18 +494,18 @@ List all the observations submitted for any activity in a site.
 
 + Parameters
     + id: `1` (required) - the id of the observation to update
-    
+
 + Request (application/json)
 
     + Headers
-    
+
             Cookie: nn-session-id:12345;nn-device-id:67890
-    
+
     + Body
-    
+
             {
                 "location": {"latitude": 20, "longitude": 11},
-                "data": 
+                "data":
                 {
                     "male-malard-count": 5,
                     "female-malard-count": 3,
@@ -519,7 +519,7 @@ List all the observations submitted for any activity in a site.
             "id": 1,
             "activity_id": 1,
             "location": {"latitude": 20, "longitude": 11},
-                "data": 
+                "data":
                 {
                     "male-malard-count": 5,
                     "female-malard-count": 3,
@@ -530,14 +530,14 @@ List all the observations submitted for any activity in a site.
 + Response 401 (application/json)
 
         {
-            "status": 401, 
+            "status": 401,
             "message": "You must be logged on to modify an observation"
         }
-        
+
 + Response 403 (application/json)
 
         {
-            "status": 401, 
+            "status": 401,
             "message": "Cannot modify another users observations"
         }
 
@@ -545,11 +545,11 @@ List all the observations submitted for any activity in a site.
 
 + Parameters
     + id: `1` (required) - the id of the observation to update
-    
+
 + Request
 
     + Headers
-    
+
             Cookie: nn-session-id:12345;nn-device-id:67890
 
 + Response 200
@@ -557,14 +557,14 @@ List all the observations submitted for any activity in a site.
 + Response 401 (application/json)
 
         {
-            "status": 401, 
+            "status": 401,
             "message": "You must be logged on to delete an observation"
         }
-        
+
 + Response 403 (application/json)
 
         {
-            "status": 401, 
+            "status": 401,
             "message": "Cannot delete another users observations"
         }
 
@@ -572,7 +572,7 @@ List all the observations submitted for any activity in a site.
 
 Endpoints for performing CRUD operations on `Idea`s. All read operations can be performed
 without authentication but all create/update/delete actions require a logged in user.
-Commenting on an idea also requires a logged in user. All list operations return the most 
+Commenting on an idea also requires a logged in user. All list operations return the most
 recent records first.
 
 + Attributes (Idea)
@@ -621,7 +621,7 @@ List all ideas submitted by a user.
                 "comments": []
             }
         ]
-        
+
 ### Read Idea [GET /ideas/{id}]
 
 + Parameters
@@ -637,17 +637,17 @@ List all ideas submitted by a user.
             "icon_url": "about:blank",
             "comments": []
         }
-        
+
 ### Create Idea [POST /ideas]
 
 + Request
 
     + Headers
-    
+
             Cookie: nn-session-id:12345;nn-device-id:67890
-        
+
     + Body
-    
+
             {
                 "group": "Wouldn't it be cool if...",
                 "content": "Writing the docs made the API happen?",
@@ -664,11 +664,11 @@ List all ideas submitted by a user.
             "icon_url": "about:blank",
             "comments": []
         }
-        
+
 + Response 401 (application/json)
 
         {
-            "status": 401, 
+            "status": 401,
             "message": "You must be logged on to create an idea"
         }
 
@@ -680,11 +680,11 @@ List all ideas submitted by a user.
 + Request
 
     + Headers
-    
+
             Cookie: nn-session-id:12345;nn-device-id:67890
-        
+
     + Body
-    
+
             {
                 "group": "Wouldn't it be cool if...",
                 "content": "You could update things",
@@ -700,22 +700,22 @@ List all ideas submitted by a user.
             "icon_url": "about:blank",
             "comments": []
         }
-        
+
 + Response 401 (application/json)
 
         {
-            "status": 401, 
+            "status": 401,
             "message": "You must be logged on to create an idea"
         }
-        
+
 + Response 401 (application/json)
 
         {
-            "status": 403, 
+            "status": 403,
             "message": "You cannot modify another users ideas"
         }
-        
-    
+
+
 ### Delete Idea [DELETE /ideas/{id}]
 
 + Parameters
@@ -724,22 +724,22 @@ List all ideas submitted by a user.
 + Request
 
     + Headers
-    
+
             Cookie: nn-session-id:12345;nn-device-id:67890
 
 + Response 200 (application/json)
-        
+
 + Response 401 (application/json)
 
         {
-            "status": 401, 
+            "status": 401,
             "message": "You must be logged on to delete an idea"
         }
-        
+
 + Response 403 (application/json)
 
         {
-            "status": 403, 
+            "status": 403,
             "message": "You cannot delete another users ideas"
         }
 
@@ -751,11 +751,11 @@ List all ideas submitted by a user.
 + Request
 
     + Headers
-    
+
             Cookie: nn-session-id:12345;nn-device-id:67890
-        
+
     + Body
-    
+
             {
                 "comment": "+1",
             }
@@ -768,7 +768,7 @@ List all ideas submitted by a user.
             "group": "Wouldn't it be cool if...",
             "content": "Writing the docs made the API happen?",
             "icon_url": "about:blank",
-            "comments": 
+            "comments":
                 [
                     {
                         "id": 1,
@@ -777,11 +777,11 @@ List all ideas submitted by a user.
                     }
                 ]
         }
-        
+
 + Response 401 (application/json)
 
         {
-            "status": 401, 
+            "status": 401,
             "message": "You must be logged on to comment on an idea"
         }
 
@@ -796,7 +796,7 @@ Creates a new user
 + Request (application/json)
 
     + Body
-            
+
             {
                 "username": "jason",
                 "display_name": "Jason Maher",
@@ -808,11 +808,11 @@ Creates a new user
 + Response 201 (application/json)
 
     + Headers
-    
+
             Set-Cookie: nn-session-id:12345;nn-device-id:67890
 
     + Body
-    
+
             {
                 "id": 1,
                 "username": "jason",
@@ -853,7 +853,7 @@ Login to an existing account
 + Request (application/json)
 
     + Body
-            
+
             {
                 "username": "jason",
                 "password": "secret",
@@ -862,9 +862,9 @@ Login to an existing account
 + Response 200
 
     + Headers
-    
+
             Set-Cookie: nn-session-id:12345;nn-device-id:67890
-            
+
 + Response 401 (application/json)
 
         {

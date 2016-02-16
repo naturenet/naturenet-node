@@ -5,8 +5,9 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "TEST_DATABASE_URL=mongodb://localhost/naturenet-test mocha --recursive",
-    "dev": "./dev-server"
+    "test": "./test.sh",
+    "server": "./server.sh",
+    "seed": "./seed.sh"
   },
   "author": "",
   "license": "MIT",
