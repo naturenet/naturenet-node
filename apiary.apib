@@ -830,14 +830,14 @@ result as firebase would.
 #### Update Idea [PATCH /ideas/{id}.json]
 
 Update a subset of an idea. A `PATCH` update will update just the keys/values present
-in the request. to replace an idea us `PUT` to the same url.
+in the request. to replace an idea use `PUT` to the same url.
 
 + Parameters
-    + id: `-KAc5NRKaLMl0XaMnYhr` (required) - the id of the idea to read.
+    + id: `-KAc5NRKaLMl0XaMnYhr` (required) - the id of the idea to update.
 
 + Request
 
-    + Bo
+    + Body
             
             {
                 "content": "My idea was updated",
@@ -866,22 +866,170 @@ submitted the idea.
 
 ### Users [/users]
 
+```
++----------------------+
+|                      |
+|   USER               |
+|   * id            <-------+-- IDEA::submitter
+|   * display_name     |    |
+|   * avatar           |    +-- OBSERVATION::observer
+|   * email            |    |
+|   * consent          |    +-- [comments]::commenter
+|                      |
+|                      |
++----------------------+
+```
+
+The users collection contains the application domain data about registered NatureNet user.
+The user record does not contain any actual authentication information as this is handled
+by Firebase and is not exposed.
+
+**`id` and `auth.uid`**
+
+When a user is created firebase will assign them a unique id which they will use internally
+to store the users authentication data. The `id` attribute of a user record is the same as
+this authentication id. This is a random token and does not by itself contain any authentication 
+information.
+
+[Firebase documentation](https://www.firebase.com/docs/security/guide/user-security.html)
+
+**Consent**
+
+In order to register users must provide consent to have their data used for research purposes.
+There are several required consent clauses and several optional ones. If a user does not accept 
+the required content clauses they *may not register*. This attribute will contain the details of
+which optional consent clauses the user accepted, example:
+
+```
+    "consent": {
+        "record": true,
+        "survey": false
+    }
+```
+
+**Access**:
+- *read*: public, unauthenticated
+- *write*:
+  - *create*: authenticated user
+  - *update*: authenticated owner only
+  - *delete*: authenticated owner only
+
+#### Create User [POST /users]
+
+User signup is a two part process:
+
+1. Create the authentication record with Firebase.
+2. Create the User record in the database.
+
+Signup is currently only possible using the native client with the exception of email/password users 
+for which the Heroku worker provides a REST API.
+
+**Email & Password Account**
+
+This account type uses the users email address and a custom password just for NatureNet as
+the means of authentication. Password storage and comparison is handled directly by Firebase
+and this information is never provided to NatureNet.
+
+*Native Client*
+```
+var users = new Firebase('https://naturenet-staging.firebaseio.com/users');
+users.createUser({ email: "me@me.com", password: "secret" })
+    .then(auth => {
+        var record = users.child(auth.uid);
+        record.set({
+            id: auth.uid,
+            email: "me@me.com",
+            // other properties
+        });
+    })
+    .catch(error => {
+        // could not create the account
+    });
+
+```
+
+*Heroku Worker*
+```
+POST https://staging.nature-net.org/signup
+
+{
+    "email": "me@me.com",
+    "password": "secret",
+    // other properties
+}
+```
+
+[Listing of signup and authentication errors](https://www.firebase.com/docs/web/guide/user-auth.html#section-full-error)
+
+**Google Account**
+
+> TODO: Register NatureNet with Google and get an OAuth client id
+
+**Facebook Account**
+
+> TODO: Register NatureNet with Facebook and get an OAuth client id
+
++ Response 201 (application/json)
+
 #### Read User [GET /users/{id}.json]
+
+Returns a single user record from the database.
+
++ Parameters
+    + id: `0737de1c-b9b9-46be-ab5b-3227274c2ced` (required) - the id of the user to read.
+
++ Response 200 (application/json)
+
+        {
+          "avatar": "https://s3.amazonaws.com/uifaces/faces/twitter/doctor_weber/48.jpg",
+          "consent": {
+            "record": true,
+            "survey": true
+          },
+          "created_at": 1455592828926,
+          "display_name": "cu nesab",
+          "email": "bilomunesd@nature-net.org",
+          "id": "0737de1c-b9b9-46be-ab5b-3227274c2ced",
+          "testuser": true,
+          "updated_at": 1455592828926
+        }
 
 #### Update User [PATCH /users/{id}.json]
 
-#### Delete User
+Update a subset of a user. A `PATCH` update will update just the keys/values present
+in the request. to replace a user use `PUT` to the same url.
 
-#### Signup
++ Parameters
+    + id: `0737de1c-b9b9-46be-ab5b-3227274c2ced` (required) - the id of the user to update.
 
-##### Email Password Account
++ Request
 
-##### Google Account
+    + Body
+            
+            {
+                "avatar": "https://i.ytimg.com/vi/sx228bU-kqw/hqdefault.jpg",
+                "modified_at": {".sv": "timestamp" }
+            }
+            
++ Response 200 (application/json)
 
-##### Facebook Account
+        {
+            "avatar": "https://i.ytimg.com/vi/sx228bU-kqw/hqdefault.jpg",
+            "modified_at": 1455592933283
+        }
 
+#### Delete User [DELETE /users/{id}.json]
 
-### Commenting [/]
+Delete a user from the database.
+
++ Parameters
+    + id: `0737de1c-b9b9-46be-ab5b-3227274c2ced` (required) - the id of the user to delete.
+
++ Response 200 (application/json)
+
+        null
+
+### Commenting [/{commentable}/{id}/comments]
 
 #### Create Comment [POST /{commentable}/comments]
 
