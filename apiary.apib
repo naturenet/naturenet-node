@@ -148,6 +148,93 @@ PATCH https://naturenet-staging.firebaseio.com/observations/-KAc5Cx1M6_kGnoOHriy
 Any record modifications performed via the Heroku worker instead of directly through firebase do not need to manage
 timestamping as the worker will populate the correct fields automatically.
 
+### Geospatial Queries
+
+Any entity that has a top level `location` attribute can be searched for by location using GeoFire. GeoFire queries
+have two limitations:
+
+1. Can only search in a radius around a point, no advanced geometries.
+2. Must be performed via a native client.
+
+GeoFire queries act very similar to Firebase streaming queries in that the client starts the query and then provides
+a callback that will recieve data as it is found. Unlike regular Firebase queries there is no equivalent to the `once`
+one-shot call.
+
+The query works on collections as a whole, when a record has a location that matches the query all that is returned to
+the client is the id of that record. It is up to the client to load the full record separately.
+
+[GeoFire documentation](https://github.com/firebase/geofire-js)
+
+**Examples**
+
+*Find observations within 20km of ACES*
+
+```
+var observations = new Firebase('https://naturenet-staging.firebaseio.com/observations');
+var geo = new GeoFire(observations);
+var query = geo.query({ center: [39.1965355, -106.8242489], radius: 20 });
+
+var inRange = [];
+query.on('key_entered', function(key, location, distance) {
+    // load the observation record
+    observations.child(key).once('value', 
+        function(snapshot) {
+            inRange.push(snapshot.val());
+        }, 
+        function(error) {
+            // uh-oh
+        });
+});
+
+// 'ready' is called after the first data payload has been recieved 
+// and all other event callbacks are complete.
+query.on('ready', function() {
+
+    // NOTE: This snippet tries to simulate a one-shot query for 
+    //       location data. It is not necessary to immediately 
+    //       cancel the query, the application can consume keys 
+    //       as they stream in, for example to keep an 'observations
+    //       near me' display updated.
+    query.cancel();
+    useObservationData(inRange);
+});
+
+```
+
+*Find activities within 20km ACES*
+
+```
+var locations = new Firebase('https://naturenet-staging.firebaseio.com/geo/activities');
+var activities = new Firebase('https://naturenet-staging.firebaseio.com/activities');
+var geo = new GeoFire(locations);
+var query = geo.query({ center: [39.1965355, -106.8242489], radius: 20 });
+
+var inRange = [];
+query.on('key_entered', function(key, location, distance) {
+    // since activity locations is a link table we need to resolve 
+    // the link record and then separately load the activity record
+    locations.child(key).once('value', 
+        function(snapshot) {
+            var activityKey = snapshot.val().activity;
+            activities.child(activityKey).once('value', 
+                function(snapshot) {
+                    inRange.push(snapshot.val());
+                }, 
+                function(error) {
+                    // uh-oh
+                });
+        }, 
+        function(error) {
+            // uh-oh again
+        });
+});
+
+query.on('ready', function() {
+    query.cancel();
+    useActivityData(inRange);
+});
+```
+
 ### Sites [/sites]
 
 ```
