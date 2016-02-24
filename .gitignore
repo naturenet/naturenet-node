@@ -50,3 +50,6 @@ node_modules
 
 # per-dev local testing variables
 .env
+
+#********** Bolt files**********
+rules.json

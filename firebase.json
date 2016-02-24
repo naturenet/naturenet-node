@@ -1,0 +1,10 @@
+{
+  "firebase": "naturenet-testing",
+  "public": "web",
+  "rules": "rules.bolt",
+  "ignore": [
+    "firebase.json",
+    "**/.*",
+    "**/node_modules/**"
+  ]
+}
