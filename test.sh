@@ -1,9 +1,11 @@
 #!/bin/sh
 #
-# Runs the tests with the '.env' variables loaded but replace the FIREBASE_ variables
-# with their TEST_FIREBASE_ equivalents.
+# Runs the tests against the testing database
 while read LINE; do
     export "$LINE"
 done < .env
+
+export FIREBASE_URL="$TEST_URL"
+export FIREBASE_SECRET="$TEST_SECRET"
 
 mocha --recursive
