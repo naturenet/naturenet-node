@@ -46,11 +46,11 @@ describe('/users', () => {
             });
 
             it('can read their full user record', () => {
-                return Users.root.child(user.id + '/public').once('value')
+                return Users.root.child(user.id() + '/public').once('value')
                     .then(snapshot => {
                         let read = snapshot.val();
                         Utils.equalsExcludingTimestamps(read, user.public);
-                        return Users.root.child(user.id + '/private').once('value')
+                        return Users.root.child(user.id() + '/private').once('value')
                     })
                     .then(snapshot => {
                         let read = snapshot.val();
@@ -59,7 +59,7 @@ describe('/users', () => {
             });
 
             it('can read other users public records', () => {
-                return Users.root.child(readableUser.id + "/public").once('value')
+                return Users.root.child(readableUser.id() + "/public").once('value')
                     .then(snapshot => {
                         let read = snapshot.val();
                         Utils.equalsExcludingTimestamps(read, readableUser.public);
@@ -67,7 +67,7 @@ describe('/users', () => {
             });
 
             it('cannot read other users private records', done => {
-                Users.root.child(readableUser.id + "/private").once('value')
+                Users.root.child(readableUser.id() + "/private").once('value')
                     .catch(error => {
                         error.code.should.equal('PERMISSION_DENIED');
                         done();
@@ -83,6 +83,12 @@ describe('/users', () => {
                 user.public.display_name = "TEST USER";
                 return user.updatePublic()
                     .then(updated => Utils.equalsExcludingTimestamps(updated.public, user.public));
+            });
+
+            it('can update their own private record', () => {
+                user.private.consent = {record: true, survey: true};
+                return user.updatePrivate()
+                    .then(updated => Utils.equalsExcludingTimestamps(updated.private, user.private));
             });
 
             it('cannot update another users public record', done => {
@@ -123,14 +129,24 @@ describe('/users', () => {
             })
 
             it('can read users public records', () => {
-                return Users.root.child(readableUser.id + "/public").once('value')
+                return Users.root.child(readableUser.id() + "/public").once('value')
                     .then(snapshot => {
                         let read = snapshot.val();
                         Utils.equalsExcludingTimestamps(read, readableUser.public);
                     });
             });
 
-            it('cannot read users private records')
+            it('cannot read users private records', done => {
+                Users.root.child(readableUser.id() + "/private").once('value')
+                    .catch(error => {
+                        error.code.should.equal('PERMISSION_DENIED');
+                        done();
+                    })
+                    .then(read => {
+                        console.log(read.val());
+                        done(new Error("Successfully read a users /private path"));
+                    });
+            });
 
             it('cannot update a users public record', () => {
                 let copy = Utils.clone(readableUser);
@@ -160,7 +176,13 @@ describe('/users', () => {
                     });
             });
 
-            it('can signup a new user');
+            it('can register a new user', () => {
+                let data = Utils.randomUserData();
+                return client.createUser(data.loginData)
+                    .then(ok => {
+                        return client.removeUser(data.loginData);
+                    });
+            });
         });
     });
 

@@ -20,7 +20,7 @@ class TestUtils {
     static randomUserData() {
         return {
             loginData: {
-                email: `testuser-${chance.word()}@nature-net.org`,
+                email: `testuser-${chance.word({length: 10})}@nature-net.org`,
                 password: 'testuser'
             },
             userData: {
