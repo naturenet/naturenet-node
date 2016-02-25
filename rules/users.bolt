@@ -24,11 +24,10 @@ type User {
 //
 // Once created users can manage their own record.
 path /users/{user_id} is User {
-    validate() { user_id == auth.uid }
+    write() { isOwner(user_id) }
 
     /public {
         read() { true }
-        write() { isOwner(user_id) }
         validate() {
             this.id == user_id
         }
@@ -36,6 +35,5 @@ path /users/{user_id} is User {
 
     /private {
         read() { isOwner(user_id) }
-        write() { isOwner(user_id) }
     }
 }

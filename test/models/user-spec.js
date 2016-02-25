@@ -184,9 +184,7 @@ describe('/users', () => {
                     });
             });
 
-            // the validation rules are preventing this even though the
-            // security rules do not.
-            it.skip('can create a user record after authentication', () => {
+            it('can create a user record after authentication', () => {
                 let data = Utils.randomUserData();
                 return client.createUser(data.loginData)
                     .then(auth => {
