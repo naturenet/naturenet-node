@@ -124,7 +124,7 @@ describe('/users', () => {
 
             var client = new Firebase(process.env.FIREBASE_URL);
 
-            before(() => {
+            beforeEach(() => {
                 client.unauth();
             })
 
@@ -181,6 +181,22 @@ describe('/users', () => {
                 return client.createUser(data.loginData)
                     .then(ok => {
                         return client.removeUser(data.loginData);
+                    });
+            });
+
+            it('can create a user record after authentication', () => {
+                let data = Utils.randomUserData();
+                return client.createUser(data.loginData)
+                    .then(auth => {
+                        return client.authWithPassword(data.loginData);
+                    })
+                    .then(auth => {
+                        let user = Users.newRecord(auth.uid, data.userData);
+                        user.private.email = data.loginData.email;
+                        return user.write();
+                    })
+                    .then(user => {
+                        return Utils.deleteUser(data.loginData, user, client);
                     });
             });
         });
