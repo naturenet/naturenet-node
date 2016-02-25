@@ -1,0 +1,13 @@
+path /observations {
+    read() { true }
+    write() { isUser() }
+    index() {[ ".key" ]}
+
+    /id {
+        index() {[ ".value" ]}
+    }
+
+    /location {
+        index() {[ "g" ]}
+    }
+}

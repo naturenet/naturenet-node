@@ -1,0 +1,5 @@
+// Sites cannot be written to without admin privileges but are publically readable.
+path /sites {
+    read() { true }
+    write() { false }
+}

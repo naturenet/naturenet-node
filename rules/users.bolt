@@ -1,0 +1,41 @@
+type PublicUserData {
+    id: String
+    avatar: String,
+    display_name: String,
+    affiliation: String | Null
+    created_at: Number,
+    updated_at: Number,
+    testuser: Boolean | Null
+}
+
+type PrivateUserData {
+    email: String,
+    consent: Map<String, Boolean>
+}
+
+type User {
+    public: PublicUserData,
+    private: PrivateUserData,
+}
+
+// A user record cannot be created without the use of admin privileges, creation of
+// new users must go via the webapp. This is due to a combination of the write rules
+// which would require clients to
+//
+// Once created users can manage their own record.
+path /users/{user_id} is User {
+    validate() { user_id == auth.uid }
+
+    /public {
+        read() { true }
+        write() { isOwner(user_id) }
+        validate() {
+            this.id == user_id
+        }
+    }
+
+    /private {
+        read() { isOwner(user_id) }
+        write() { isOwner(user_id) }
+    }
+}

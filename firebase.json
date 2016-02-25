@@ -1,7 +1,7 @@
 {
   "firebase": "naturenet-testing",
   "public": "web",
-  "rules": "rules.bolt",
+  "rules": "rules.json",
   "ignore": [
     "firebase.json",
     "**/.*",

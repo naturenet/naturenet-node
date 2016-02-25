@@ -1,0 +1,9 @@
+path /ideas {
+    read() { true }
+    write() { isUser() }
+    index() {[ ".key" ]}
+
+    /id {
+        index() {[ ".value" ]}
+    }
+}

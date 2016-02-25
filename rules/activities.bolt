@@ -1,0 +1,16 @@
+// Activities cannot be written to without admin privileges but are publically readable.
+path /activities {
+    read() { true }
+    write() { false }
+}
+
+// Activity locations cannot be written to without admin privileges but are publically readable.
+path /geo/activities {
+    read() { true }
+    write() { false }
+    index() {[ "activity", "site" ]}
+
+    /location {
+        index() {[ "g" ]}
+    }
+}
