@@ -1,13 +1,5 @@
 path /observations {
     read() { true }
     write() { isUser() }
-    index() {[ ".key" ]}
-
-    /id {
-        index() {[ ".value" ]}
-    }
-
-    /location {
-        index() {[ "g" ]}
-    }
+    index() {[ ".key", "g", "activity_location", "observer" ]}
 }
