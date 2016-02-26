@@ -1,0 +1,11 @@
+// Checks if the current operation is being performed by a specific user.
+// Used to check for ownership in cases where a record knows the id of the user
+// who created it.
+function isOwner(user_id) {
+    auth != null && auth.uid == user_id;
+}
+
+// Checks if the current operation is being performed by any authenticated user.
+function isUser() {
+    auth != null && auth.uid != null;
+}

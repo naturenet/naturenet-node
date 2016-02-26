@@ -1,0 +1,5 @@
+path /observations {
+    read() { true }
+    write() { isUser() }
+    index() {[ ".key", "g", "activity_location", "observer" ]}
+}
