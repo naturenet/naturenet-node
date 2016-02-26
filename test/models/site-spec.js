@@ -23,6 +23,7 @@ describe('/sites', () => {
                 return Sites.root.once('value')
                     then(snapshot => {
                         let value = snapshot.val();
+                        value.should.not.be.empty();
                         for (var id of Object.keys(value)) {
                             let site = value[id];
                             should.exist(site.id);
@@ -82,6 +83,7 @@ describe('/sites', () => {
                 return Sites.root.once('value')
                     then(snapshot => {
                         let value = snapshot.val();
+                        value.should.not.be.empty();
                         for (var id of Object.keys(value)) {
                             let site = value[id];
                             should.exist(site.id);
