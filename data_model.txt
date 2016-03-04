@@ -6,8 +6,8 @@ http://asciiflow.com/
 |   * id           <----------------------+   |   * id          <-----------+
 |   * name               |                |   |   * name             |      |
 |   * description        |                |   |   * description      |      |
-|   * location           |                |   |   * icon_url         |      |
-|                        |                |   |   * template         |      |
+|   * l                  |                |   |   * icon_url         |      |
+|   * g                  |                |   |   * template         |      |
 |                        |                |   |                      |      |
 +------------------------+                |   +----------------------+      |
                                           |                                 |
@@ -18,11 +18,10 @@ http://asciiflow.com/
 |   * id                 |    +---------------->  * id               |      |
 |   * group              |    |           |   |   * activity    +-----------+
 |   * content            |    |           +----+  * site             |
-|   * icon_url           |    |               |   * location         |
-|   * submitter     +----------------+        |                      |
+|   * icon_url           |    |               |   * l                |
+|   * submitter     +----------------+        |   * g                |
 |   * [comments]         |    |      |        |                      |
-|     * id               |    |      |        +----------------------+
-|     * commenter   +----------------+
+|     * commenter   +----------------+        +----------------------+
 |     * comment          |    |      |
 |                        |    |      |        +----------------------+
 |                        |    |      |        |                      |
@@ -35,10 +34,10 @@ http://asciiflow.com/
 |   * id                 |    |      |        |                      |
 |   * activity_location +-----+      |        |                      |
 |   * observer          +------------+        +----------------------+
-|   * location           |           |
+|   * l                  |           |
+|   * g                  |           |
 |   * data               |           |
 |   * [comments]         |           |
-|     * id               |           |
 |     * commenter       +------------+
 |     * comment          |
 |                        |
