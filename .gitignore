@@ -53,3 +53,6 @@ node_modules
 
 #********** Bolt files**********
 rules.json
+
+#********** Migration files**********
+postgres-migrate/data
