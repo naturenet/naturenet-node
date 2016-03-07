@@ -64,8 +64,8 @@ sample requests here do not always show or make use of the full range of paramet
 |   * id           <----------------------+   |   * id          <-----------+
 |   * name               |                |   |   * name             |      |
 |   * description        |                |   |   * description      |      |
-|   * location           |                |   |   * icon_url         |      |
-|                        |                |   |   * template         |      |
+|   * l                  |                |   |   * icon_url         |      |
+|   * g                  |                |   |   * template         |      |
 |                        |                |   |                      |      |
 +------------------------+                |   +----------------------+      |
                                           |                                 |
@@ -76,43 +76,48 @@ sample requests here do not always show or make use of the full range of paramet
 |   * id                 |    +---------------->  * id               |      |
 |   * group              |    |           |   |   * activity    +-----------+
 |   * content            |    |           +----+  * site             |
-|   * icon_url           |    |               |   * location         |
+|   * icon_url           |    |               |   * l                |
+|   * status             |    |               |   * g                |
 |   * submitter     +----------------+        |                      |
-|   * [comments]         |    |      |        |                      |
-|     * id               |    |      |        +----------------------+
+|   * [comments]         |    |      |        +----------------------+
 |     * commenter   +----------------+
-|     * comment          |    |      |
-|                        |    |      |        +----------------------+
+|     * comment          |    |      |        +----------------------+
 |                        |    |      |        |                      |
 +------------------------+    |      |        |   USER               |
-                              |      +--------->  * id               |
-                              |      |        |   * display_name     |
-+------------------------+    |      |        |   * avatar           |
-|                        |    |      |        |   * email            |
-|   OBSERVATION          |    |      |        |   * consent          |
-|   * id                 |    |      |        |                      |
-|   * activity_location +-----+      |        |                      |
-|   * observer          +------------+        +----------------------+
-|   * location           |           |
-|   * data               |           |
-|   * [comments]         |           |
-|     * id               |           |
-|     * commenter       +------------+
-|     * comment          |
-|                        |
-|                        |
-+------------------------+
+                              |      +--------->  * id          <-----------+
+                              |      |        |   * display_name     |      |
++------------------------+    |      |        |   * avatar           |      |
+|                        |    |      |        |   * email            |      |
+|   OBSERVATION          |    |      |        |   * consent          |      |
+|   * id                 |    |      |        |   * bio              |      |
+|   * activity_location +-----+      |        |   * affiliation      |      |
+|   * observer          +------------+        |                      |      |
+|   * l                  |           |        +----------------------+      |
+|   * g                  |           |                                      |
+|   * data               |           |        +----------------------+      |
+|   * [comments]         |           |        |                      |      |
+|     * commenter       +------------+        |   USER_GROUP         |      |
+|     * comment          |                    |   * id               |      |
+|                        |                    |   * name             |      |
+|                        |                    |   * avatar           |      |
+|                        |                    |   * description      |      |
+|                        |                    |   * affiliation      |      |
++------------------------+                    |   * owner           +-------+
+                                              |   * [members]        |      |
+                                              |     * member        +-------+
+                                              +----------------------+
+
 ```
 
 ### Location Data
 
 Location data is stored in the database using [GeoFire](https://github.com/firebase/geofire-js). Each
-entity with a `location` attribute will have the data saved as a longitude - latitude pair as well as
-a [geohash](https://en.wikipedia.org/wiki/Geohash). Every `location` attribute will have data structued 
+entity with location data will have the data saved as a longitude - latitude pair as well as
+a [geohash](https://en.wikipedia.org/wiki/Geohash). Every geolocated object will include data structued 
 as follows:
 
 ```
-location: {
+{
     g: "xp7emzkmpw"
     l: [41.39326, 140.18072]
 }
@@ -150,7 +155,7 @@ timestamping as the worker will populate the correct fields automatically.
 
 ### Geospatial Queries
 
-Any entity that has a top level `location` attribute can be searched for by location using GeoFire. GeoFire queries
+Any entity that has a top level `g` attribute containing a geohash can be searched for by location using GeoFire. GeoFire queries
 have two limitations:
 
 1. Can only search in a radius around a point, no advanced geometries.
@@ -244,8 +249,8 @@ query.on('ready', function() {
 |   * id           <--------- ACTIVITY_LOCATION::site
 |   * name               |
 |   * description        |
-|   * location           |
-|                        |
+|   * l                  |
+|   * g                  |
 |                        |
 +------------------------+
 ```
@@ -262,7 +267,8 @@ Site data cannot be created via any of the apps.
     + id (string, required) - unique id for the site, set by the creator (not auto-generated)
     + name (string, required) - the name of the site for display
     + description (string, required) - a description of the site
-    + location (object, required) - a central location for the whole site
+    + l (object, required) - a central lat/long coordinate for the whole site
+    + g (string, required) - a central geohash for the whole site
 
 #### List Sites [GET /sites.json]
 
@@ -277,10 +283,8 @@ that site.
             "created_at" : 1455588677934,
             "description" : "Aspen Center for Environmental Studies",
             "id" : "aces",
-            "location" : {
-              "g" : "9wuncpsbqe",
-              "l" : [ 39.1965355, -106.8242489 ]
-            },
+            "g" : "9wuncpsbqe",
+            "l" : [ 39.1965355, -106.8242489 ],
             "name" : "ACES",
             "updated_at" : 1455588677934
           },
@@ -288,10 +292,8 @@ that site.
             "created_at" : 1455588677935,
             "description" : "Shirakami Mountain National Park",
             "id" : "shirakami",
-            "location" : {
-              "g" : "xp7ew7weu3",
-              "l" : [ 41.4163605, 140.2056501 ]
-            },
+            "g" : "xp7ew7weu3",
+            "l" : [ 41.4163605, 140.2056501 ],
             "name" : "白神山地",
             "updated_at" : 1455588677935
           }
@@ -310,10 +312,8 @@ Returns a single site record from the database.
             "created_at" : 1455588677934,
             "description" : "Aspen Center for Environmental Studies",
             "id" : "aces",
-            "location" : {
-              "g" : "9wuncpsbqe",
-              "l" : [ 39.1965355, -106.8242489 ]
-            },
+            "g" : "9wuncpsbqe",
+            "l" : [ 39.1965355, -106.8242489 ],
             "name" : "ACES",
             "updated_at" : 1455588677934
         }
@@ -438,7 +438,8 @@ Returns a single activity record from the database.
 |   * id          <----------- OBSERVATION::activity_location
 |   * activity    +----------> ACTIVITTY::id
 |   * site        +----------> SITE::id
-|   * location         |
+|   * l                |
+|   * g                |
 |                      |
 |                      |
 +----------------------+
@@ -447,7 +448,7 @@ Returns a single activity record from the database.
 The activity location collection links activity records to one or more locations in one or more sites.
 Each entry in this collection represents one location where an activity is present.
 
-Activity locations cannot be created via and of the apps.
+Activity locations cannot be created via any of the apps.
 
 **Access**:
 - *read*: public, unauthenticated
@@ -457,12 +458,13 @@ Activity locations cannot be created via and of the apps.
     + id (string, required) - unique autogenerated-id for the activity location
     + activity (string, required) - the id of the activity being located
     + site (string, required) - the id of the site associated with this location
-    + location (object, required) - the location where the activity can be performed
+    + l (object, required) - the lat/long coordinate where the activity can be performed
+    + g (string, required) - the geohash where the activity can be performed
     
 #### List Activity Locations [GET /geo/activities.json]
 
 Returns an object containing all activity locations available in the database. The response will have a
-key-value pair for each activitiy location where the key is the locations`id` and the value is the record for
+key-value pair for each activitiy location where the key is the location's `id` and the value is the record for
 that activity.
 
 + Response 200 (application/json)
@@ -471,25 +473,15 @@ that activity.
               "-KAc4wQe6I_-pLm8beEF": {
                 "activity": "-KAc4wOQI_5_Jgm4pJyn",
                 "id": "-KAc4wQe6I_-pLm8beEF",
-                "location": {
-                  "g": "9wup2ctzz1",
-                  "l": [
-                    39.25274,
-                    -106.83384
-                  ]
-                },
+                "g": "9wup2ctzz1",
+                "l": [39.25274, -106.83384],
                 "site": "aces"
               },
               "-KAc4wXO14m8w5WyWpDs": {
                 "activity": "-KAc4wV773lqxuhz1iK4",
                 "id": "-KAc4wXO14m8w5WyWpDs",
-                "location": {
-                  "g": "xp7ez8xzpx",
-                  "l": [
-                    41.44442,
-                    140.26244
-                  ]
-                },
+                "g": "xp7ez8xzpx",
+                "l": [41.44442, 140.26244],
                 "site": "shirakami"
               }
         }
@@ -507,13 +499,8 @@ Returns a single activity location record from the database.
         {
             "activity": "-KAc4wV773lqxuhz1iK4",
             "id": "-KAc4wXO14m8w5WyWpDs",
-            "location": {
-              "g": "xp7ez8xzpx",
-              "l": [
-                41.44442,
-                140.26244
-              ]
-            },
+            "g": "xp7ez8xzpx",
+            "l": [41.44442, 140.26244],
             "site": "shirakami"
         }
 
@@ -536,10 +523,10 @@ Returns all locations where a specific activity is located or lists activity loc
 |   * id                 |
 |   * activity_location +-----> ACTIVITY_LOCATION::id
 |   * observer          +-----> USER::id
-|   * location           |
+|   * l                  |
+|   * g                  |
 |   * data               |
 |   * [comments]         |
-|     * id               |
 |     * commenter       +-----> USER::id
 |     * comment          |
 |                        |
@@ -568,7 +555,8 @@ as to what structure this data will have.
     + id (string, required) - unique autogenerated-id for the observation
     + activity_location (string, required) - the id of the activity location pair this observation was recorded for
     + observer (string, required) - the id of the user who submitted the observation
-    + location (object, required) - the location where the observation took place
+    + l (object, required) - the lat/long coordinate where the observation took place
+    + g (string, required) - the geohash where the observation took place
     + data (object, required) - freeform data submitted as part of the observation
     + comments (object, optional) - comments by other users on the observation, may be null/not present if there are no comments
     
@@ -593,18 +581,15 @@ that observation.
             "comments" : {
               "-KAc5PhyQsLi_vd6OllJ" : {
                 "comment" : "Fihov zava do ed wocka lej wuw jikoc ace goj kifkevak ildif vealeaca cafpu odna ve.",
-                "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
-                "id" : "-KAc5PhyQsLi_vd6OllJ"
+                "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
               },
               "-KAc5S9-pjitmmQraJUu" : {
                 "comment" : "Hag aro bud rol go piduzum masu ocrujiho dausnet bi camme warupap nuvpum.",
-                "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
-                "id" : "-KAc5S9-pjitmmQraJUu"
+                "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
               },
               "-KAc5SRJKPwtFvHo_E52" : {
                 "comment" : "Rarsag medirub soez gi vu zogek rit ripmure do kefero so no id jo bu.",
-                "commenter" : "13e2d376-249d-43b5-8b33-74ee689279b8",
-                "id" : "-KAc5SRJKPwtFvHo_E52"
+                "commenter" : "13e2d376-249d-43b5-8b33-74ee689279b8"
               }
             },
             "created_at" : 1455592890321,
@@ -614,10 +599,8 @@ that observation.
               "foo" : "bar"
             },
             "id" : "-KAc5Cx1M6_kGnoOHriy",
-            "location" : {
-              "g" : "xp7eemrewu",
-              "l" : [ 41.42595, 140.07529 ]
-            },
+            "g" : "xp7eemrewu",
+            "l" : [ 41.42595, 140.07529 ],
             "observer" : "3480f925-c4fc-4576-b534-2b38d3fc6456",
             "updated_at" : 1455592890321
           },
@@ -626,8 +609,7 @@ that observation.
             "comments" : {
               "-KAc5UvOoQcjiznIz0uG" : {
                 "comment" : "Luko ve virtafdiv wosepca tejdi ik wic nevan noz ro nugu moguvlu epode ladaf ra jiwkuhol.",
-                "commenter" : "08626fa9-7140-4b02-a635-f92870851396",
-                "id" : "-KAc5UvOoQcjiznIz0uG"
+                "commenter" : "08626fa9-7140-4b02-a635-f92870851396"
               }
             },
             "created_at" : 1455592890789,
@@ -637,10 +619,8 @@ that observation.
               "foo" : "bar"
             },
             "id" : "-KAc5D3K4jmr70FiqwjH",
-            "location" : {
-              "g" : "xp7s5pfpwu",
-              "l" : [ 41.52826, 140.05675 ]
-            },
+            "g" : "xp7s5pfpwu",
+            "l" : [ 41.52826, 140.05675 ],
             "observer" : "4446932b-c430-4d82-8768-435061b6b322",
             "updated_at" : 1455592890789
           },
@@ -653,10 +633,8 @@ that observation.
               "foo" : "bar"
             },
             "id" : "-KAc5DIhBq7myDffPENg",
-            "location" : {
-              "g" : "9wgywgkf0u",
-              "l" : [ 39.12955, -106.92337 ]
-            },
+            "g" : "9wgywgkf0u",
+            "l" : [ 39.12955, -106.92337 ],
             "observer" : "140abc29-b3b3-482b-9a6a-5ba4088aab8f",
             "updated_at" : 1455592891772
           },
@@ -665,8 +643,7 @@ that observation.
             "comments" : {
               "-KAc5Pt4r4hlT6_g-PPC" : {
                 "comment" : "Setoto uhuhat menurwef italib daj si mevpovub azcohun upcu huw rifdo hukvi tunruwet gadtojtul.",
-                "commenter" : "3480f925-c4fc-4576-b534-2b38d3fc6456",
-                "id" : "-KAc5Pt4r4hlT6_g-PPC"
+                "commenter" : "3480f925-c4fc-4576-b534-2b38d3fc6456"
               }
             },
             "created_at" : 1455592892205,
@@ -676,10 +653,8 @@ that observation.
               "foo" : "bar"
             },
             "id" : "-KAc5DPSlxBuRNlPaCMH",
-            "location" : {
-              "g" : "9wup4n6mgz",
-              "l" : [ 39.23458, -106.78385 ]
-            },
+            "g" : "9wup4n6mgz",
+            "l" : [ 39.23458, -106.78385 ],
             "observer" : "9031b7a3-bc5a-4ae0-9113-9f392895c42c",
             "updated_at" : 1455592892205
           }
@@ -699,8 +674,7 @@ Returns a single observation record from the database
             "comments" : {
               "-KAc5Pt4r4hlT6_g-PPC" : {
                 "comment" : "Setoto uhuhat menurwef italib daj si mevpovub azcohun upcu huw rifdo hukvi tunruwet gadtojtul.",
-                "commenter" : "3480f925-c4fc-4576-b534-2b38d3fc6456",
-                "id" : "-KAc5Pt4r4hlT6_g-PPC"
+                "commenter" : "3480f925-c4fc-4576-b534-2b38d3fc6456"
               }
             },
             "created_at" : 1455592892205,
@@ -710,10 +684,8 @@ Returns a single observation record from the database
               "foo" : "bar"
             },
             "id" : "-KAc5DPSlxBuRNlPaCMH",
-            "location" : {
-              "g" : "9wup4n6mgz",
-              "l" : [ 39.23458, -106.78385 ]
-            },
+            "g" : "9wup4n6mgz",
+            "l" : [ 39.23458, -106.78385 ],
             "observer" : "9031b7a3-bc5a-4ae0-9113-9f392895c42c",
             "updated_at" : 1455592892205
         }
@@ -792,9 +764,9 @@ the observation.
 |   * group              |
 |   * content            |
 |   * icon_url           |
+|   * status             |
 |   * submitter     +---------> USER::id
 |   * [comments]         |
-|     * id               |
 |     * commenter   +---------> USER::id
 |     * comment          |
 |                        |
@@ -817,6 +789,7 @@ may submit an idea.
     + group (string, required) - the name of the idea group this idea belongs to
     + content (string, required) - the user submitted text describing the idea
     + icon_url (string, required) - url to an icon representing the idea or group
+    + status (string, required) - describes the state of the idea (proposed, implemented, deleted, etc.)
     + submitter (string, required) - the id of the user who submitted the idea
     + comments (object, optional) - comments by other users on the idea, may be null/not present if there are no comments
 
@@ -840,23 +813,19 @@ the record for that idea.
             "comments": {
               "-KAc5Qe879zOW59FnRAo": {
                 "comment": "Ta onsazora ji ves zeda fuz poktewubo nuat dufu ati sacurus oresopeh catri bazus cistud ari.",
-                "commenter": "08626fa9-7140-4b02-a635-f92870851396",
-                "id": "-KAc5Qe879zOW59FnRAo"
+                "commenter": "08626fa9-7140-4b02-a635-f92870851396"
               },
               "-KAc5QgM5dpErFm_YRgU": {
                 "comment": "Mi her bopiggu mezsolmi wo lo kovejtej daz ijizeop ivapogin ibamoew poh kukcambom.",
-                "commenter": "c1df9792-0263-4679-8a3a-459af4a5ecb8",
-                "id": "-KAc5QgM5dpErFm_YRgU"
+                "commenter": "c1df9792-0263-4679-8a3a-459af4a5ecb8"
               },
               "-KAc5TSAJiGihnLnufmQ": {
                 "comment": "Ocfudtob pemsoh ha ubibu padzigdof sor boc ni pi up wi fe jupo ocucabi odzo rijpamo.",
-                "commenter": "ad90339d-3729-49e1-ac29-2dda4cba0e65",
-                "id": "-KAc5TSAJiGihnLnufmQ"
+                "commenter": "ad90339d-3729-49e1-ac29-2dda4cba0e65"
               },
               "-KAc5V1Ck6zRNWkk7WIK": {
                 "comment": "Nij runojpo vuzemwem cueseig bubabkaf azcedo oslad nulakhe vabwop eg amezajucu ij uhvimum.",
-                "commenter": "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
-                "id": "-KAc5V1Ck6zRNWkk7WIK"
+                "commenter": "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
               }
             },
             "content": "Me bug kuazu zonluota amvowibu jirvowif wuce godre tivjiv ripo cuwlapoli gomnip.",
@@ -871,28 +840,23 @@ the record for that idea.
             "comments": {
               "-KAc5OgpO6R8lbwiGwh5": {
                 "comment": "Ebluej rifaj jinuun wiagomoh dical nisomuk im afu piwutcoh jafnuz hof jecfi nicopnel figwenkuf.",
-                "commenter": "fad7b5e2-91b9-4a2f-8e26-c060acfe13f6",
-                "id": "-KAc5OgpO6R8lbwiGwh5"
+                "commenter": "fad7b5e2-91b9-4a2f-8e26-c060acfe13f6"
               },
               "-KAc5RsbK1Ue75Ncv1tF": {
                 "comment": "Daji nessepi fuphukpad bojiti nus ji ta rozimzen tuhneh riztipoh hapava dono zibawun deghefse log biuj me re.",
-                "commenter": "fad7b5e2-91b9-4a2f-8e26-c060acfe13f6",
-                "id": "-KAc5RsbK1Ue75Ncv1tF"
+                "commenter": "fad7b5e2-91b9-4a2f-8e26-c060acfe13f6"
               },
               "-KAc5RzOiHb5i-Fdjxyc": {
                 "comment": "Fewifilat papuw ejahahu wup po wac wagorfo eteibe kanda dareap ukadek cuzku idota osusi wuswaz hazolu.",
-                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f",
-                "id": "-KAc5RzOiHb5i-Fdjxyc"
+                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f"
               },
               "-KAc5SoweI9SRicuY1v8": {
                 "comment": "He imavaz zijkomfo ag sobtanan pe peb nunnu mejote lo uva vin giufi geagueg.",
-                "commenter": "1be753aa-1e79-4cbe-ac0f-19fcdf717aa9",
-                "id": "-KAc5SoweI9SRicuY1v8"
+                "commenter": "1be753aa-1e79-4cbe-ac0f-19fcdf717aa9"
               },
               "-KAc5UdPxvUyhd9X3Qs9": {
                 "comment": "Owvawij kokabe micemnum gi jotseh icuv alaho gici asohih elosi nazu gohmoffer.",
-                "commenter": "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
-                "id": "-KAc5UdPxvUyhd9X3Qs9"
+                "commenter": "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
               }
             },
             "content": "Hotzutte urusivo vislo zolju wuzefa bic te konag burraga vugudah ewedet pe oso vustoj.",
@@ -907,23 +871,19 @@ the record for that idea.
             "comments": {
               "-KAc5Q7PylghVwMgsGtJ": {
                 "comment": "Rapugu det sivfuk ika kipcu ge sivu igacokhig pohoban giddaz zutewihar waow jisitsuw safumogo emi sigig vahkofij.",
-                "commenter": "cea650e5-e2c3-4453-8ad5-24e359befa23",
-                "id": "-KAc5Q7PylghVwMgsGtJ"
+                "commenter": "cea650e5-e2c3-4453-8ad5-24e359befa23"
               },
               "-KAc5QND20dhNuRPbCP_": {
                 "comment": "Cocehfeh ca vicso hopicik ceipe hozlal mukadma ge balfolri vulujvo me nowud moukuulo huur metih ahefe.",
-                "commenter": "779834e1-b0df-40ca-b115-2a8d48bf575b",
-                "id": "-KAc5QND20dhNuRPbCP_"
+                "commenter": "779834e1-b0df-40ca-b115-2a8d48bf575b"
               },
               "-KAc5QbvB4StSbM4w_xU": {
                 "comment": "Wuhkikcoc noel nubnuv cohlar pun tejgus hiufetek buj nalgihavi geruwuv vid uligupi verge hut eweseseh gisanme gaz ebaete.",
-                "commenter": "13e2d376-249d-43b5-8b33-74ee689279b8",
-                "id": "-KAc5QbvB4StSbM4w_xU"
+                "commenter": "13e2d376-249d-43b5-8b33-74ee689279b8"
               },
               "-KAc5UFrFFPqbkfCvw7G": {
                 "comment": "Ihetuk femenpe editeb zewcebped dagpo pojol behnew bu jizi nedi idaurahem tohzoot heso viwmo ujfo egkim.",
-                "commenter": "ad90339d-3729-49e1-ac29-2dda4cba0e65",
-                "id": "-KAc5UFrFFPqbkfCvw7G"
+                "commenter": "ad90339d-3729-49e1-ac29-2dda4cba0e65"
               }
             },
             "content": "Kofgez kot walag oh sagja daterba pepku senvidjal vidsik kikicpo sugnom jon ki fodumzo ugasub.",
@@ -938,13 +898,11 @@ the record for that idea.
             "comments": {
               "-KAc5PTIP2RBeL9pBNaY": {
                 "comment": "Ti kesahado nunkijaw jaw ejacikih jafdedvu fih ho hajzazvef du ji saw ceroro piz dasiwje pus.",
-                "commenter": "58405e41-1aff-4c15-b565-c65f6431e439",
-                "id": "-KAc5PTIP2RBeL9pBNaY"
+                "commenter": "58405e41-1aff-4c15-b565-c65f6431e439"
               },
               "-KAc5RhG90Xfyihp2qk3": {
                 "comment": "Bivgunow lar cikive vuvu benabusu gemtuwon kiglet kif uvitasut saz wackize riemala cego senu one ucukeci cota.",
-                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f",
-                "id": "-KAc5RhG90Xfyihp2qk3"
+                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f"
               }
             },
             "content": "Jaraj ezsah rac ocebo kibafami houw cuumrug lazgif egiwi nas isuh gunonso rez.",
@@ -970,13 +928,11 @@ Returns a single idea record from the database
             "comments": {
               "-KAc5PTIP2RBeL9pBNaY": {
                 "comment": "Ti kesahado nunkijaw jaw ejacikih jafdedvu fih ho hajzazvef du ji saw ceroro piz dasiwje pus.",
-                "commenter": "58405e41-1aff-4c15-b565-c65f6431e439",
-                "id": "-KAc5PTIP2RBeL9pBNaY"
+                "commenter": "58405e41-1aff-4c15-b565-c65f6431e439"
               },
               "-KAc5RhG90Xfyihp2qk3": {
                 "comment": "Bivgunow lar cikive vuvu benabusu gemtuwon kiglet kif uvitasut saz wackize riemala cego senu one ucukeci cota.",
-                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f",
-                "id": "-KAc5RhG90Xfyihp2qk3"
+                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f"
               }
             },
             "content": "Jaraj ezsah rac ocebo kibafami houw cuumrug lazgif egiwi nas isuh gunonso rez.",
@@ -1058,7 +1014,8 @@ submitted the idea.
 |   * avatar           |    +-- OBSERVATION::observer
 |   * email            |    |
 |   * consent          |    +-- [comments]::commenter
-|                      |
+|   * bio              |
+|   * affiliation      |
 |                      |
 +----------------------+
 ```
@@ -1103,6 +1060,8 @@ which optional consent clauses the user accepted, example:
     + avatar (string, required) - url to an image representing the user
     + email (string, required) - the users email address
     + consent (object, required) - what consent data the user has provided.
+    + bio (string, optional) - brief text describing the user
+    + affiliation (string, optional) - the user's role at their home site
 
 #### Create User [POST /users]
 
@@ -1219,6 +1178,41 @@ Delete a user from the database.
 
         null
 
+### Groups [/groups]
+
+```
++----------------------+
+|                      |
+|   USER_GROUP         |
+|   * id               |
+|   * name             |
+|   * avatar           |
+|   * description      |
+|   * affiliation      |
+|   * creator         +-------> USER::id
+|   * [members]        |
+|     * member        +-------> USER::id
++----------------------+
+```
+A Group represents an arbitrary set of Users who share some social context.
+Users may belong to one or more Groups, which contain one or more users. A group is created by a user for a particular Site
+
+**Access**:
+- *read*: public, unauthenticated
+- *write*:
+ - *create*: authenticated user
+ - *update*: authenticated creator only
+ - *delete*: authenticated creator only
+ 
++ Attributes
+    + id (string, required) - the id of the group
+    + name (string, required) - the name of the group
+    + avatar (string, required) - url to an icon representing the group
+    + description (string, required) - description of the group
+    + affiliation (string, required) - a site name or role applicable to group members
+    + creator (string, required) - the id of the user who created the group
+    + members (object, optional) - id's of each user who belongs to the group, may be null/absent if there are no other members
+
 ### Commenting [/{commentable}/{id}/comments]
 
 Both `Idea` and `Observation` support comments. Any user may comment on any other users idea or observation.
@@ -1232,7 +1226,6 @@ Comments are embedded within the main record and are not stored in a separate ta
   - *delete*: authenticated commenter or parent record owner
 
 + Attributes
-    + id (string, required) - unique autogenerated-id for the comment
     + commenter (string, required) - the id of the user who created the comment
     + comment (string, required) - the user submitted comment text
 
@@ -1246,7 +1239,6 @@ It is recommended to use a native client to achieve this:
 var comments = new Firebase('https://naturenet-staging.firebaseio.com/ideas/-KAc5NRKaLMl0XaMnYhr/comments');
 var record = comments.push();
 record.set({
-    id: record.key(),
     // other attributes
 })
 ```
