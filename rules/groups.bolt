@@ -1,0 +1,4 @@
+path /groups {
+    read() { true }
+    write() { isUser() }
+}

@@ -19,29 +19,32 @@ http://asciiflow.com/
 |   * group              |    |           |   |   * activity    +-----------+
 |   * content            |    |           +----+  * site             |
 |   * icon_url           |    |               |   * l                |
-|   * submitter     +----------------+        |   * g                |
-|   * [comments]         |    |      |        |                      |
-|     * commenter   +----------------+        +----------------------+
-|     * comment          |    |      |
-|                        |    |      |        +----------------------+
+|   * status             |    |               |   * g                |
+|   * submitter     +----------------+        |                      |
+|   * [comments]         |    |      |        +----------------------+
+|     * commenter   +----------------+
+|     * comment          |    |      |        +----------------------+
 |                        |    |      |        |                      |
 +------------------------+    |      |        |   USER               |
-                              |      +--------->  * id               |
-                              |      |        |   * display_name     |
-+------------------------+    |      |        |   * avatar           |
-|                        |    |      |        |   * email            |
-|   OBSERVATION          |    |      |        |   * consent          |
-|   * id                 |    |      |        |                      |
-|   * activity_location +-----+      |        |                      |
-|   * observer          +------------+        +----------------------+
-|   * l                  |           |
-|   * g                  |           |
-|   * data               |           |
-|   * [comments]         |           |
-|     * commenter       +------------+
-|     * comment          |
-|                        |
-|                        |
-|                        |
-|                        |
-+------------------------+
+                              |      +--------->  * id          <-----------+
+                              |      |        |   * display_name     |      |
++------------------------+    |      |        |   * avatar           |      |
+|                        |    |      |        |   * email            |      |
+|   OBSERVATION          |    |      |        |   * consent          |      |
+|   * id                 |    |      |        |   * bio              |      |
+|   * activity_location +-----+      |        |   * affiliation      |      |
+|   * observer          +------------+        |                      |      |
+|   * l                  |           |        +----------------------+      |
+|   * g                  |           |                                      |
+|   * data               |           |        +----------------------+      |
+|   * [comments]         |           |        |                      |      |
+|     * commenter       +------------+        |   USER_GROUP         |      |
+|     * comment          |                    |   * id               |      |
+|                        |                    |   * name             |      |
+|                        |                    |   * avatar           |      |
+|                        |                    |   * description      |      |
+|                        |                    |   * affiliation      |      |
++------------------------+                    |   * owner           +-------+
+                                              |   * [members]        |      |
+                                              |     * member        +-------+
+                                              +----------------------+

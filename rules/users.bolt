@@ -6,6 +6,7 @@ type PublicUserData {
     created_at: Number,
     updated_at: Number,
     testuser: Boolean | Null
+	bio: String | Null
 }
 
 type PrivateUserData {
