@@ -32,6 +32,8 @@ class DataExport
         Dir.mkdir(DataExport.root)
         Dir.mkdir(DataExport.root + '/sites')
         Dir.mkdir(DataExport.root + '/activities')
+        Dir.mkdir(DataExport.root + '/geo')
+        Dir.mkdir(DataExport.root + '/geo/activities')
         Dir.mkdir(DataExport.root + '/users')
         Dir.mkdir(DataExport.root + '/ideas')
         Dir.mkdir(DataExport.root + '/observations')
@@ -46,6 +48,28 @@ class DataExport
     def self.write_activity (activity)
         File.open(DataExport.root + "/activities/#{activity.id}.json", 'w+') do |file|
             file.write(activity.activity_firebase_json)
+        end
+        #each activity should have a single geo instance
+        File.open(DataExport.root + "/geo/activities/#{activity.id}.json", 'w+') do |file|
+            file.write(activity.activity_location_firebase_json)
+        end
+    end
+
+    def self.write_observation (observation)
+        File.open(DataExport.root + "/observations/#{observation.id}.json", 'w+') do |file|
+            file.write(observation.observation_firebase_json)
+        end
+    end
+
+    def self.write_design_idea (idea)
+        File.open(DataExport.root + "/ideas/#{idea.id}.json", 'w+') do |file|
+            file.write(idea.design_idea_firebase_json)
+        end
+    end
+
+    def self.write_user(user)
+        File.open(DataExport.root + "/users/#{user.id}.json", 'w+') do |file|
+            file.write(user.user_firebase_json)
         end
     end
 
@@ -79,7 +103,13 @@ class Context < ActiveRecord::Base
     def activity_firebase_json
         raise "#{name} is not an activity" unless kind == 'Activity'
 
-        extra_data = JSON.parse(extras)
+        #Depending on the specific activity, extras may or may not contain anything useful
+        begin
+          extra_data = JSON.parse(extras)
+        rescue JSON::ParserError => e
+          extra_data = {}
+        end
+
         icon = extra_data['Icon'] || "http://res.cloudinary.com/university-of-colorado/image/upload/v1427400563/2_FreeObservations_mjzgnh.png"
 
         template = {}
@@ -87,7 +117,16 @@ class Context < ActiveRecord::Base
             template[key] = extra_data['type'] || 'no data'
         end
 
-        return JSON.pretty_generate(original_id: id, name: title, description: description, icon_url: icon, template: template)
+        status = "Completed"
+
+        return JSON.pretty_generate(id: id, name: title, description: description, icon_url: icon, status: status)
+    end
+
+    # also write out an instance at ACES, which is not directly given in the old model
+    def activity_location_firebase_json
+        raise "#{name} is not an activity" unless kind == 'Activity'
+        site = 'aces'
+        return JSON.pretty_generate(id: id, activity: id, site: site, location: [39.1965355,-106.8242489])
     end
 end
 
@@ -99,8 +138,31 @@ class Note < ActiveRecord::Base
         Note.includes(:media).where(kind: 'FieldNote')
     end
 
+    def self.design_ideas
+        Note.where(kind: 'DesignIdea')
+    end
+
     def media?
         return media != nil
+    end
+
+    def observation_firebase_json
+        raise "#{id} is not an observation" unless kind == "FieldNote"
+
+        cloudinary_root = "http://res.cloudinary.com/university-of-colorado/image/upload/v1400187706/"
+
+        data = {}
+        data['text'] = content
+        data['image'] = cloudinary_root + media.link if media?
+
+        l = [latitude, longitude]
+        return JSON.pretty_generate(id: id, activity_location: context_id, observer: account_id, data: data, l: l, created_at: created_at, updated_at: modified_at)
+    end
+
+    def design_idea_firebase_json
+      raise "#{id} is not a design idea" unless kind == "DesignIdea"
+
+      return JSON.pretty_generate(id: id, content: content, status: status, submitter: account_id, group: "Deprecated")
     end
 end
 
@@ -115,11 +177,28 @@ File.new(script_root + "/../.env").each_line do |line|
     ActiveRecord::Base.establish_connection(value) if key == 'POSTGRES_URL'
 end
 
+class User < ActiveRecord::Base
+    self.table_name = 'account'
+
+    def user_firebase_json
+        profile = {}
+        profile['id'] = id
+        profile['display_name'] = username
+        profile['avatar'] = icon_url
+        profile['affiliation'] = 'aces'
+        return JSON.pretty_generate(public: profile)
+    end
+end
+
 DataExport.setup
 
 aces = Site.aces
 DataExport.write_site(aces)
 aces.activities.each { |a| DataExport.write_activity(a) }
+Note.observations.each { |o| DataExport.write_observation(o) }
+Note.design_ideas.each { |d| DataExport.write_design_idea(d) }
+User.all.each { |u| DataExport.write_user(u) }
+
 
 
 =begin
