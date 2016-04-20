@@ -46,29 +46,29 @@ class DataExport
     end
 
     def self.write_activity (activity)
-        File.open(DataExport.root + "/activities/#{activity.id}.json", 'w+') do |file|
+        File.open(DataExport.root + "/activities/-ACES_a#{activity.id}.json", 'w+') do |file|
             file.write(activity.activity_firebase_json)
         end
         #each activity should have a single geo instance
-        File.open(DataExport.root + "/geo/activities/#{activity.id}.json", 'w+') do |file|
+        File.open(DataExport.root + "/geo/activities/-ACES_g#{activity.id}.json", 'w+') do |file|
             file.write(activity.activity_location_firebase_json)
         end
     end
 
     def self.write_observation (observation)
-        File.open(DataExport.root + "/observations/#{observation.id}.json", 'w+') do |file|
+        File.open(DataExport.root + "/observations/-ACES_o#{observation.id}.json", 'w+') do |file|
             file.write(observation.observation_firebase_json)
         end
     end
 
     def self.write_design_idea (idea)
-        File.open(DataExport.root + "/ideas/#{idea.id}.json", 'w+') do |file|
+        File.open(DataExport.root + "/ideas/-ACES_d#{idea.id}.json", 'w+') do |file|
             file.write(idea.design_idea_firebase_json)
         end
     end
 
     def self.write_user(user)
-        File.open(DataExport.root + "/users/#{user.id}.json", 'w+') do |file|
+        File.open(DataExport.root + "/users/-ACES_u#{user.id}.json", 'w+') do |file|
             file.write(user.user_firebase_json)
         end
     end
@@ -110,7 +110,8 @@ class Context < ActiveRecord::Base
           extra_data = {}
         end
 
-        icon = extra_data['Icon'] || "http://res.cloudinary.com/university-of-colorado/image/upload/v1427400563/2_FreeObservations_mjzgnh.png"
+        icon = extras
+        #extra_data['Icon'] || "http://res.cloudinary.com/university-of-colorado/image/upload/v1427400563/2_FreeObservations_mjzgnh.png"
 
         template = {}
         ['web', 'ios', 'andriod'].each do |key|
@@ -119,14 +120,14 @@ class Context < ActiveRecord::Base
 
         status = "Completed"
 
-        return JSON.pretty_generate(id: id, name: title, description: description, icon_url: icon, status: status)
+        return JSON.pretty_generate(id: "-ACES_a#{id}", name: title, description: description, icon_url: icon, status: status)
     end
 
     # also write out an instance at ACES, which is not directly given in the old model
     def activity_location_firebase_json
         raise "#{name} is not an activity" unless kind == 'Activity'
         site = 'aces'
-        return JSON.pretty_generate(id: id, activity: id, site: site, location: [39.1965355,-106.8242489])
+        return JSON.pretty_generate(id: "-ACES_g#{id}", activity: "-ACES_a#{id}", site: site, location: [39.1965355,-106.8242489])
     end
 end
 
@@ -156,13 +157,13 @@ class Note < ActiveRecord::Base
         data['image'] = cloudinary_root + media.link if media?
 
         l = [latitude, longitude]
-        return JSON.pretty_generate(id: id, activity_location: context_id, observer: account_id, data: data, l: l, created_at: created_at, updated_at: modified_at)
+        return JSON.pretty_generate(id: "-ACES_o#{id}", activity_location: "-ACES_g#{context_id}", observer: "-ACES_u#{account_id}", data: data, l: l, status: status, created_at: (created_at.to_i * 1000), updated_at: (modified_at.to_i * 1000))
     end
 
     def design_idea_firebase_json
       raise "#{id} is not a design idea" unless kind == "DesignIdea"
 
-      return JSON.pretty_generate(id: id, content: content, status: status, submitter: account_id, group: "Deprecated")
+      return JSON.pretty_generate(id: "-ACES_d#{id}", content: content, status: status, submitter: "-ACES_u#{account_id}", group: "Deprecated", created_at: (created_at.to_i * 1000), updated_at: (modified_at.to_i * 1000))
     end
 end
 
@@ -182,11 +183,13 @@ class User < ActiveRecord::Base
 
     def user_firebase_json
         profile = {}
-        profile['id'] = id
+        profile['id'] = "-ACES_u#{id}"
         profile['display_name'] = username
         profile['avatar'] = icon_url
         profile['affiliation'] = 'aces'
-        return JSON.pretty_generate(public: profile)
+        profile['created_at'] = created_at.to_i * 1000
+        profile['updated_at'] = modified_at.to_i * 1000
+        return JSON.pretty_generate(profile)
     end
 end
 

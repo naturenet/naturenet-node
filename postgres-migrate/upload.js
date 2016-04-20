@@ -90,7 +90,7 @@ function uploadDirectory(dir) {
     let path = local_path + dir + '/';
     let child = host.child(dir);
     var data = {};
-    fs.readdirSync(path).forEach(f => {
+    fs.readdirSync(path).slice(0,50).forEach(f => {
         console.log("read file " + f);
         data[f.split('.')[0]] = readFile(path + f);
     });
@@ -109,7 +109,7 @@ authenticate()
     //.then(ok => uploadDirectory("activities"))
     //.then(ok => uploadDirectory("geo/activities"))
     //.then(ok => uploadDirectory("ideas"))
-    //.then(ok => uploadDirectory("observations"))
+    .then(ok => uploadDirectory("observations"))
     //.then(ok => uploadDirectory("sites"))
     //.then(ok => uploadDirectory("users"))
     .then(ok => {

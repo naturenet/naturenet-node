@@ -1,6 +1,6 @@
 type PublicUserData {
     id: String
-    avatar: String,
+    avatar: String | Null,
     display_name: String,
     affiliation: String | Null
     created_at: Number,
@@ -10,13 +10,10 @@ type PublicUserData {
 }
 
 type PrivateUserData {
-    email: String,
-    consent: Map<String, Boolean>
-}
-
-type User {
-    public: PublicUserData,
-    private: PrivateUserData,
+    id: String,
+    consent: Map<String, Boolean>,
+    created_at: Number,
+    updated_at: Number,
 }
 
 // A user record cannot be created without the use of admin privileges, creation of
@@ -24,17 +21,24 @@ type User {
 // which would require clients to
 //
 // Once created users can manage their own record.
-path /users/{user_id} is User {
+path /users/{user_id} is PublicUserData {
     write() { isOwner(user_id) }
 
-    /public {
-        read() { true }
-        validate() {
-            this.id == user_id
-        }
+    validate() {
+        this.id == user_id
     }
+}
 
-    /private {
-        read() { isOwner(user_id) }
-    }
+path /users {
+    read() { true }
+}
+
+path /users-private/{user_id} is PrivateUserData {
+    read() { isOwner(user_id) }
+    write() { isOwner(user_id) }
+}
+
+path /users-private {
+    read() { false }
+    write() { false }
 }

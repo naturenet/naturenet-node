@@ -15,3 +15,8 @@ path /geo/activities {
     write() { false }
     index() {[ "activity", "site", "g" ]}
 }
+
+// Exception: users can write to latest_contribution to keep sorting by contribution in sync
+path /geo/activities/{id}/latest_contribution is Number {
+    write() { isUser() }
+}
