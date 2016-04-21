@@ -31,6 +31,8 @@ All links and the interactive samples in this document are based on the `Staging
 
 ## Heroku Worker
 
+> NOTE: The heroku app is not yet implemented. All references to Heroku functionality are hypothetical.
+
 In addition to Firebase there is a NatureNet app hosted on Heroku which performs background data processing as well
 as providing some additional REST endpoints. As with the firebase databases there are three versions of the worker
 for the same purpose. Should full text search be required the heroku worker will host the 
@@ -46,8 +48,6 @@ for the same purpose. Should full text search be required the heroku worker will
   REST endpoints are active and target the staging database. Watches the production database for events as
   mirrors data create/update/delete into staging.
 
-> NOTE: The heroku app is not yet online.
-
 ## HTTP Access and Native Clients
 
 Firebase provides both an HTTP REST API and native clients in a variety of languages. This documentation will as much as
@@ -58,54 +58,62 @@ sample requests here do not always show or make use of the full range of paramet
 ## Data Model
 
 ```
-+------------------------+                    +----------------------+
-|                        |                    |                      |
-|   SITE                 |                    |   ACTIVITY           |
-|   * id           <----------------------+   |   * id          <-----------+
-|   * name               |                |   |   * name             |      |
-|   * description        |                |   |   * description      |      |
-|   * l                  |                |   |   * icon_url         |      |
-|   * g                  |                |   |   * template         |      |
-|                        |                |   |                      |      |
-+------------------------+                |   +----------------------+      |
++------------------------+                    +-------------------------+
+|                        |                    |                         |
+|   SITE                 |                    |   ACTIVITY              |
+|   * id           <----------------------+   |   * id              <-------+
+|   * name               |                |   |   * name                |   |
+|   * description        |                |   |   * description         |   |
+|   * l                  |                |   |   * icon_url            |   |
+|   * g                  |                |   |   * template            |   |
+|                        |                |   |                         |   |
++------------------------+                |   +-------------------------+   |
                                           |                                 |
-                                          |                                 |
-+------------------------+                |   +----------------------+      |
-|                        |                |   |                      |      |
-|   IDEA                 |                |   |   ACTIVITY_LOCATION  |      |
-|   * id                 |    +---------------->  * id               |      |
-|   * group              |    |           |   |   * activity    +-----------+
-|   * content            |    |           +----+  * site             |
-|   * icon_url           |    |               |   * l                |
-|   * status             |    |               |   * g                |
-|   * submitter     +----------------+        |                      |
-|   * [comments]         |    |      |        +----------------------+
-|     * commenter   +----------------+
-|     * comment          |    |      |        +----------------------+
-|                        |    |      |        |                      |
-+------------------------+    |      |        |   USER               |
-                              |      +--------->  * id          <-----------+
-                              |      |        |   * display_name     |      |
-+------------------------+    |      |        |   * avatar           |      |
-|                        |    |      |        |   * email            |      |
-|   OBSERVATION          |    |      |        |   * consent          |      |
-|   * id                 |    |      |        |   * bio              |      |
-|   * activity_location +-----+      |        |   * affiliation      |      |
-|   * observer          +------------+        |                      |      |
-|   * l                  |           |        +----------------------+      |
-|   * g                  |           |                                      |
-|   * data               |           |        +----------------------+      |
-|   * [comments]         |           |        |                      |      |
-|     * commenter       +------------+        |   USER_GROUP         |      |
-|     * comment          |                    |   * id               |      |
-|                        |                    |   * name             |      |
-|                        |                    |   * avatar           |      |
-|                        |                    |   * description      |      |
-|                        |                    |   * affiliation      |      |
-+------------------------+                    |   * owner           +-------+
-                                              |   * [members]        |      |
++------------------------+                |   +-------------------------+   |
+|                        |                |   |                         |   |
+|   IDEA                 |                |   |   ACTIVITY_LOCATION     |   |
+|   * id                 |    +---------------->  * id                  |   |
+|   * group              |    |           |   |   * activity        +-------+
+|   * content            |    |           +----+  * site                |
+|   * icon_url           |    |               |   * l                   |
+|   * status             |    |               |   * g                   |
+|   * submitter     +----------------+        |   * latest_contribution |
+|   * [comments]         |    |      |        |                         |
+|     * commenter   +----------------+        +-------------------------+
+|     * comment          |    |      |
+|   * [likes]            |    |      |        +-------------------------+
+|     * user             |    |      |        |                         |
+|                        |    |      |        |   USER                  |
++------------------------+    |      +--------->  * id              <-------+
+                              |      |        |   * display_name        |   |
++------------------------+    |      |        |   * avatar              |   |
+|                        |    |      |        |   * bio                 |   |
+|   OBSERVATION          |    |      |        |   * affiliation         |   |
+|   * id                 |    |      |        |   * latest_contribution |   |
+|   * activity_location +-----+      |        |                         |   |
+|   * observer          +------------+        +-------------------------+   |
+|   * l                  |           |                                      |
+|   * g                  |           |        +-------------------------+   |
+|   * data               |           |        |                         |   |
+|   * [comments]         |           |        |   USER-PRIVATE          |   |
+|     * commenter       +------------+        |   * id              +-------+
+|     * comment          |                    |   * consent             |   |
+|   * [likes]            |                    |   * name                |   |
+|     * user             |                    |                         |   |
+|                        |                    +-------------------------+   |
+|                        |                                                  |
++------------------------+                    +-------------------------+   |
+                                              |                         |   |
+                                              |   USER_GROUP            |   |
+                                              |   * id                  |   |
+                                              |   * name                |   |
+                                              |   * avatar              |   |
+                                              |   * description         |   |
+                                              |   * affiliation         |   |
+                                              |   * owner           +-------+
+                                              |   * [members]           |   |
                                               |     * member        +-------+
-                                              +----------------------+
+                                              +-------------------------+
 
 ```
 
@@ -432,27 +440,31 @@ Returns a single activity record from the database.
 ### Activity Locations [/geo/activities]
 
 ```
-+----------------------+
-|                      |
-|   ACTIVITY_LOCATION  |
-|   * id          <----------- OBSERVATION::activity_location
-|   * activity    +----------> ACTIVITTY::id
-|   * site        +----------> SITE::id
-|   * l                |
-|   * g                |
-|                      |
-|                      |
-+----------------------+
++-------------------------+
+|                         |
+|   ACTIVITY_LOCATION     |
+|   * id          <-------------- OBSERVATION::activity_location
+|   * activity    +-------------> ACTIVITTY::id
+|   * site        +-------------> SITE::id
+|   * l                   |
+|   * g                   |
+|   * latest_contribution |
+|                         |
++-------------------------+
 ```
 
 The activity location collection links activity records to one or more locations in one or more sites.
 Each entry in this collection represents one location where an activity is present.
 
-Activity locations cannot be created via any of the apps.
+Activity locations cannot be created via any of the apps, however an authenticated user can update
+the `latest_contribution` field.
 
 **Access**:
 - *read*: public, unauthenticated
 - *write*: forbidden
+
+***latest_contribution***:
+- *write*: authenticated user
 
 + Attributes
     + id (string, required) - unique autogenerated-id for the activity location
@@ -460,6 +472,7 @@ Activity locations cannot be created via any of the apps.
     + site (string, required) - the id of the site associated with this location
     + l (object, required) - the lat/long coordinate where the activity can be performed
     + g (string, required) - the geohash where the activity can be performed
+    + latest_contribution (number, optional) - the timestamp of the most recent observation associated with this activity location
     
 #### List Activity Locations [GET /geo/activities.json]
 
@@ -693,16 +706,23 @@ Returns a single observation record from the database
 #### Create Observation [POST /observations.json]
 
 Submit a new observation for the current user. Observation records require their firebase
-key to be stored as part of the record, requests that do not contain the id will be rejected. 
+key to be stored as part of the record, requests that do not contain the id will be rejected.
+All observations should be created as multi-location updates, also updating the `latest_contribution`
+timestamp of the associated user and activity_location objects.
 It is recommended to use a native client to achieve this:
 
 ```
 var observations = new Firebase('https://naturenet-staging.firebaseio.com/observations');
-var record = observations.push();
-record.set({
-    id: record.key(),
-    // other attributes
-})
+var obsId = observations.push().key();
+var newData = {};
+newData['/observations/' + obsId] = {
+  id: obsId,
+  observer: userId,
+  activity_location: projectId,
+  // other attributes
+};
+newData['/users/' + userId + '/latest_contribution'] = Firebase.ServerValue.TIMESTAMP;
+newData['/geo/activities/' + projectId + '/latest_contribution'] = Firebase.ServerValue.TIMESTAMP;
 ```
 
 Alternatively the heroku worker provides an endpoint that will handle this on the clients
@@ -1006,23 +1026,23 @@ submitted the idea.
 ### Users [/users]
 
 ```
-+----------------------+
-|                      |
-|   USER               |
-|   * id            <-------+-- IDEA::submitter
-|   * display_name     |    |
-|   * avatar           |    +-- OBSERVATION::observer
-|   * email            |    |
-|   * consent          |    +-- [comments]::commenter
-|   * bio              |
-|   * affiliation      |
-|                      |
-+----------------------+
++-------------------------+
+|                         |
+|   USER                  |
+|   * id          <------------+-- IDEA::submitter
+|   * display_name        |    |
+|   * avatar              |    +-- OBSERVATION::observer
+|   * bio                 |    |
+|   * affiliation         |    +-- [comments]::commenter
+|   * latest_contribution |
+|                         |
++-------------------------+
 ```
 
 The users collection contains the application domain data about registered NatureNet user.
 The user record does not contain any actual authentication information as this is handled
-by Firebase and is not exposed.
+by Firebase and is not exposed. The user record is publicly readable and thus contains only
+public profile information.
 
 **`id` and `auth.uid`**
 
@@ -1033,21 +1053,8 @@ information.
 
 [Firebase documentation](https://www.firebase.com/docs/security/guide/user-security.html)
 
-**Consent**
-
-In order to register users must provide consent to have their data used for research purposes.
-There are several required consent clauses and several optional ones. If a user does not accept 
-the required content clauses they *may not register*. This attribute will contain the details of
-which optional consent clauses the user accepted, example:
-
-```
-    "consent": {
-        "record": true,
-        "survey": false
-    }
-```
-
 **Access**:
+
 - *read*: public, unauthenticated
 - *write*:
   - *create*: authenticated user
@@ -1058,20 +1065,63 @@ which optional consent clauses the user accepted, example:
     + id (string, required) - the firebase generated auth id for this user
     + display_name (string, required) - the name the user wants displayed on their content
     + avatar (string, required) - url to an image representing the user
-    + email (string, required) - the users email address
-    + consent (object, required) - what consent data the user has provided.
     + bio (string, optional) - brief text describing the user
-    + affiliation (string, optional) - the user's role at their home site
+    + affiliation (string, required) - the site the user is associated with
+    + latest_contribution (number, optional) - the timestamp of the most recent observation associated with this user
 
+### Users Private [/users-private]
+
+```
++----------------------+
+|                      |
+|   USER-PRIVATE       |
+|   * id          <----+-- USER::id
+|   * consent          |
+|   * name             |
+|                      |
++----------------------+
+```
+
+The users-private collection contains the non-public data about registered NatureNet users.
+The private record does not contain any actual authentication information as this is handled
+by Firebase and is not exposed. The private record has restricted read permissions to protect
+the user's privacy.
+
+**Consent**
+
+In order to register users must provide consent to have their data used for research purposes.
+There are several required consent clauses and several optional ones. If a user does not accept 
+the required content clauses they *may not register*. This attribute will contain the details of
+the required and which optional consent clauses the user accepted, example:
+
+```
+    "consent": {
+        "required": true,
+        "record": true,
+        "survey": false
+    }
+```
+
+**Access**:
+
+- *read*: authenticated owner only
+- *write*:
+  - *create*: authenticated user
+  - *update*: authenticated owner only
+  - *delete*: authenticated owner only
+
++ Attributes
+    + id (string, required) - the firebase generated auth id for this user
+    + consent (object, required) - what consent data the user has provided.
+    + name (string, required) - the user's real name
+    
 #### Create User [POST /users]
 
-User signup is a two part process:
+User signup is a three part process:
 
 1. Create the authentication record with Firebase.
-2. Create the User record in the database.
-
-Signup is currently only possible using the native client with the exception of email/password users 
-for which the Heroku worker provides a REST API.
+2. Authenticate with the new user record.
+3. Create the multi-part User and User-Private record in the database.
 
 **Email & Password Account**
 
@@ -1097,17 +1147,6 @@ users.createUser({ email: "me@me.com", password: "secret" })
 
 ```
 
-*Heroku Worker*
-```
-POST https://staging.nature-net.org/signup
-
-{
-    "email": "me@me.com",
-    "password": "secret",
-    // other properties
-}
-```
-
 [Listing of signup and authentication errors](https://www.firebase.com/docs/web/guide/user-auth.html#section-full-error)
 
 **Google Account**
@@ -1131,13 +1170,8 @@ Returns a single user record from the database.
 
         {
           "avatar": "https://s3.amazonaws.com/uifaces/faces/twitter/doctor_weber/48.jpg",
-          "consent": {
-            "record": true,
-            "survey": true
-          },
           "created_at": 1455592828926,
           "display_name": "cu nesab",
-          "email": "bilomunesd@nature-net.org",
           "id": "0737de1c-b9b9-46be-ab5b-3227274c2ced",
           "testuser": true,
           "updated_at": 1455592828926
