@@ -58,62 +58,62 @@ sample requests here do not always show or make use of the full range of paramet
 ## Data Model
 
 ```
-+------------------------+                    +-------------------------+
-|                        |                    |                         |
-|   SITE                 |                    |   ACTIVITY              |
-|   * id           <----------------------+   |   * id              <-------+
-|   * name               |                |   |   * name                |   |
-|   * description        |                |   |   * description         |   |
-|   * l                  |                |   |   * icon_url            |   |
-|   * g                  |                |   |   * template            |   |
-|                        |                |   |                         |   |
-+------------------------+                |   +-------------------------+   |
-                                          |                                 |
-+------------------------+                |   +-------------------------+   |
-|                        |                |   |                         |   |
-|   IDEA                 |                |   |   ACTIVITY_LOCATION     |   |
-|   * id                 |    +---------------->  * id                  |   |
-|   * group              |    |           |   |   * activity        +-------+
-|   * content            |    |           +----+  * site                |
-|   * icon_url           |    |               |   * l                   |
-|   * status             |    |               |   * g                   |
-|   * submitter     +----------------+        |   * latest_contribution |
-|   * [comments]         |    |      |        |                         |
-|     * commenter   +----------------+        +-------------------------+
-|     * comment          |    |      |
-|   * [likes]            |    |      |        +-------------------------+
-|     * user             |    |      |        |                         |
-|                        |    |      |        |   USER                  |
-+------------------------+    |      +--------->  * id              <-------+
-                              |      |        |   * display_name        |   |
-+------------------------+    |      |        |   * avatar              |   |
-|                        |    |      |        |   * bio                 |   |
-|   OBSERVATION          |    |      |        |   * affiliation         |   |
-|   * id                 |    |      |        |   * latest_contribution |   |
-|   * activity_location +-----+      |        |                         |   |
-|   * observer          +------------+        +-------------------------+   |
-|   * l                  |           |                                      |
-|   * g                  |           |        +-------------------------+   |
-|   * data               |           |        |                         |   |
-|   * [comments]         |           |        |   USER-PRIVATE          |   |
-|     * commenter       +------------+        |   * id              +-------+
-|     * comment          |                    |   * consent             |   |
-|   * [likes]            |                    |   * name                |   |
-|     * user             |                    |                         |   |
-|                        |                    +-------------------------+   |
-|                        |                                                  |
-+------------------------+                    +-------------------------+   |
-                                              |                         |   |
-                                              |   USER_GROUP            |   |
-                                              |   * id                  |   |
-                                              |   * name                |   |
-                                              |   * avatar              |   |
-                                              |   * description         |   |
-                                              |   * affiliation         |   |
-                                              |   * owner           +-------+
-                                              |   * [members]           |   |
-                                              |     * member        +-------+
-                                              +-------------------------+
+    +------------------------+               +-------------------------+
+    |                        |               |                         |
+    |   IDEA                 |               |   ACTIVITY              |
++---->  * id                 |               |   * id              <-------+
+|   |   * group              |               |   * name                |   |
+|   |   * content            |               |   * description         |   |
+|   |   * icon_url           |               |   * icon_url            |   |
+|   |   * status             |               |   * template            |   |
+|   |   * submitter     +------------+       |                         |   |
+|   |   * [likes]            |       |       +-------------------------+   |
+|   |     * user        +------------+                                     |
+|   |                        |       |       +-------------------------+   |
+|   +------------------------+       |       |                         |   |
+|                                    |       |   ACTIVITY_LOCATION     |   |
+|   +------------------------+   +------------>  * id                  |   |
+|   |                        |   |   |       |   * activity        +-------+
+|   |   OBSERVATION          |   |   |   +----+  * site                |
++---->  * id                 |   |   |   |   |   * l                   |
+|   |   * activity_location +----+   |   |   |   * g                   |
+|   |   * observer          +--------+   |   |   * latest_contribution |
+|   |   * l                  |       |   |   |                         |
+|   |   * g                  |       |   |   +-------------------------+
+|   |   * data               |       |   |
+|   |   * [likes]            |       |   |   +-------------------------+
+|   |     * user            +--------+   |   |                         |
+|   |                        |       |   |   |   USER                  |
+|   +------------------------+       +-------->  * id              <-------+
+|                                    |   |   |   * display_name        |   |
+|   +------------------------+       |   |   |   * avatar              |   |
+|   |                        |       |   |   |   * bio                 |   |
+|   |   COMMENT              |       |   +----+  * affiliation         |   |
+|   |   * id                 |       |   |   |   * latest_contribution |   |
++----+  * parent             |       |   |   |                         |   |
+    |   * commenter     +------------+   |   +-------------------------+   |
+    |   * comment            |           |                                 |
+    |                        |           |   +-------------------------+   |
+    +------------------------+           |   |                         |   |
+                                         |   |   USER+PRIVATE          |   |
+    +------------------------+           |   |   * id              +-------+
+    |                        |           |   |   * consent             |   |
+    |   SITE                 |           |   |   * name                |   |
+    |   * id            <----------------+   |                         |   |
+    |   * name               |           |   +-------------------------+   |
+    |   * description        |           |                                 |
+    |   * l                  |           |   +-------------------------+   |
+    |   * g                  |           |   |                         |   |
+    |                        |           |   |   USER_GROUP            |   |
+    +------------------------+           |   |   * id                  |   |
+                                         |   |   * name                |   |
+                                         |   |   * avatar              |   |
+                                         |   |   * description         |   |
+                                         +----+  * affiliation         |   |
+                                             |   * owner           +-------+
+                                             |   * [members]           |   |
+                                             |     * member        +-------+
+                                             +-------------------------+
 
 ```
 
@@ -539,9 +539,8 @@ Returns all locations where a specific activity is located or lists activity loc
 |   * l                  |
 |   * g                  |
 |   * data               |
-|   * [comments]         |
-|     * commenter       +-----> USER::id
-|     * comment          |
+|   * [likes]            |
+|     * user            +-----> USER::id
 |                        |
 |                        |
 +------------------------+
@@ -571,7 +570,7 @@ as to what structure this data will have.
     + l (object, required) - the lat/long coordinate where the observation took place
     + g (string, required) - the geohash where the observation took place
     + data (object, required) - freeform data submitted as part of the observation
-    + comments (object, optional) - comments by other users on the observation, may be null/not present if there are no comments
+    + likes (object, optional) - likes by other users on the observation, may be null/not present if there are no likes
     
 #### List Observations [GET /observations.json{?orderBy}{?limitToFirst}]
 
@@ -786,9 +785,8 @@ the observation.
 |   * icon_url           |
 |   * status             |
 |   * submitter     +---------> USER::id
-|   * [comments]         |
-|     * commenter   +---------> USER::id
-|     * comment          |
+|   * [likes]            |
+|     * user        +---------> USER::id
 |                        |
 |                        |
 +------------------------+
@@ -811,7 +809,7 @@ may submit an idea.
     + icon_url (string, required) - url to an icon representing the idea or group
     + status (string, required) - describes the state of the idea (proposed, implemented, deleted, etc.)
     + submitter (string, required) - the id of the user who submitted the idea
-    + comments (object, optional) - comments by other users on the idea, may be null/not present if there are no comments
+    + likes (object, optional) - likes by other users on the idea, may be null/not present if there are no likes
 
 #### List Ideas [GET /ideas.json{?orderBy}{?limitToFirst}]
 
@@ -1250,7 +1248,7 @@ Users may belong to one or more Groups, which contain one or more users. A group
 ### Commenting [/{commentable}/{id}/comments]
 
 Both `Idea` and `Observation` support comments. Any user may comment on any other users idea or observation.
-Comments are embedded within the main record and are not stored in a separate table.
+Comments are stored in a separate table.
 
 **Access**:
 - *read*: public, unauthenticated
@@ -1270,7 +1268,7 @@ key to be stored as part of the record, requests that do not contain the id will
 It is recommended to use a native client to achieve this:
 
 ```
-var comments = new Firebase('https://naturenet-staging.firebaseio.com/ideas/-KAc5NRKaLMl0XaMnYhr/comments');
+var comments = new Firebase('https://naturenet-staging.firebaseio.com/comments');
 var record = comments.push();
 record.set({
     // other attributes
@@ -1288,14 +1286,12 @@ result as firebase would.
 
 + Response 201 (application/json)
 
-#### Update Comment [PATCH /{commentable}/{parentId}/comments/{commentId}.json]
+#### Update Comment [PATCH /comments/{commentId}.json]
 
 Comments can be updated with either `PATCH` or `PUT` as described in the Update actions
 for other records. Comments only contain one updateable attribute which is `comment` (in addition to timestamps).
 
 + Parameters
-    + commentable: `ideas` (required) - the type of record being comment on, must be one of [ideas, observations]
-    + parentId: `-KAc5NRKaLMl0XaMnYhr` (required) - the id of the record to be commented on
     + commentId: `-KAc5PTIP2RBeL9pBNaY` (required) the id of the comment to be updated.
 
 + Request
@@ -1315,13 +1311,11 @@ for other records. Comments only contain one updateable attribute which is `comm
         }
 
 
-#### Delete Comment [DELETE /{commentable}/{parentId}/comments/{commentId}.json]
+#### Delete Comment [DELETE /comments/{commentId}.json]
 
 Deletes a comment from the parent record.
 
 + Parameters
-    + commentable: `ideas` (required) - the type of record being comment on, must be one of [ideas, observations]
-    + parentId: `-KAc5NRKaLMl0XaMnYhr` (required) - the id of the record to be commented on
     + commentId: `-KAc5PTIP2RBeL9pBNaY` (required) the id of the comment to be updated.
     
 + Response 200 (application/json)
