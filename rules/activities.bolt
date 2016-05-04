@@ -5,6 +5,7 @@
 path /activities {
     read() { true }
     write() { false }
+    index() {[ ".key", "status" ]}
 }
 
 // Activity locations cannot be written to without admin privileges but are publicly readable.

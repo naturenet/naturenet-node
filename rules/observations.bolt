@@ -1,5 +1,23 @@
+type Observation extends Timestamped {
+    id: String
+    activity_location: String
+    data: Object
+    g: String | Null  // require when ready
+    l: Object | Null  // require when ready
+    observer: String
+    status: String | Null
+    likes: Object | Null
+
+    validate() {
+        this.id == obs_id
+    }
+}
+
 path /observations {
     read() { true }
-    write() { isUser() }
-    index() {[ ".key", "g", "activity_location", "observer" ]}
+}
+
+path /observations/{obs_id} is Observation {
+    write() { isOwner(this.observer) }
+    index() {[ ".key", "g", "activity_location", "observer", "updated_at" ]}
 }

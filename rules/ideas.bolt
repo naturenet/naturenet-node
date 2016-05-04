@@ -1,9 +1,22 @@
+type Idea extends Timestamped {
+    id: String
+    content: String
+    group: String
+    icon_url: String | Null
+    status: String
+    submitter: String
+    likes: Object | Null
+
+    validate() {
+        this.id == idea_id
+    }
+}
+
 path /ideas {
     read() { true }
-    write() { isUser() }
-    index() {[ ".key" ]}
+}
 
-    /id {
-        index() {[ ".value" ]}
-    }
+path /ideas/{idea_id} is Idea {
+    write() { isOwner(this.submitter) }
+    index() {[ ".key", "status", "group", "submitter", "updated_at" ]}
 }

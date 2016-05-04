@@ -1,28 +1,18 @@
-type PublicUserData {
+type PublicUserData extends Timestamped {
     id: String
-    avatar: String | Null,
-    display_name: String,
+    avatar: String | Null
+    display_name: String
     affiliation: String | Null
-    created_at: Number,
-    updated_at: Number,
-    testuser: Boolean | Null
 	bio: String | Null
+
+    validate() {
+        this.id == user_id
+    }
 }
 
-type PrivateUserData {
-    id: String,
-    consent: Map<String, Boolean>,
-    created_at: Number,
-    updated_at: Number,
-}
-
-// A user record cannot be created without the use of admin privileges, creation of
-// new users must go via the webapp. This is due to a combination of the write rules
-// which would require clients to
-//
-// Once created users can manage their own record.
-path /users/{user_id} is PublicUserData {
-    write() { isOwner(user_id) }
+type PrivateUserData extends Timestamped {
+    id: String
+    consent: Object
 
     validate() {
         this.id == user_id
@@ -33,12 +23,17 @@ path /users {
     read() { true }
 }
 
-path /users-private/{user_id} is PrivateUserData {
-    read() { isOwner(user_id) }
+path /users/{user_id} is PublicUserData {
     write() { isOwner(user_id) }
+    index() {[ ".key", "affiliation", "created_at" ]}
 }
 
 path /users-private {
     read() { false }
     write() { false }
+}
+
+path /users-private/{user_id} is PrivateUserData {
+    read() { isOwner(user_id) }
+    write() { isOwner(user_id) }
 }

@@ -9,3 +9,8 @@ function isOwner(user_id) {
 function isUser() {
     auth != null && auth.uid != null;
 }
+
+type Timestamped {
+    created_at: Number
+    updated_at: Number
+}
