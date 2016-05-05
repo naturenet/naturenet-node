@@ -58,63 +58,64 @@ sample requests here do not always show or make use of the full range of paramet
 ## Data Model
 
 ```
-    +------------------------+               +-------------------------+
-    |                        |               |                         |
-    |   IDEA                 |               |   ACTIVITY              |
-+---->  * id                 |               |   * id              <-------+
-|   |   * group              |               |   * name                |   |
-|   |   * content            |               |   * description         |   |
-|   |   * icon_url           |               |   * icon_url            |   |
-|   |   * status             |               |   * template            |   |
-|   |   * submitter     +------------+       |                         |   |
-|   |   * [likes]            |       |       +-------------------------+   |
-|   |     * user        +------------+                                     |
-|   |                        |       |       +-------------------------+   |
-|   +------------------------+       |       |                         |   |
-|                                    |       |   ACTIVITY_LOCATION     |   |
-|   +------------------------+   +------------>  * id                  |   |
-|   |                        |   |   |       |   * activity        +-------+
-|   |   OBSERVATION          |   |   |   +----+  * site                |
-+---->  * id                 |   |   |   |   |   * l                   |
-|   |   * activity_location +----+   |   |   |   * g                   |
-|   |   * observer          +--------+   |   |   * latest_contribution |
-|   |   * l                  |       |   |   |                         |
-|   |   * g                  |       |   |   +-------------------------+
-|   |   * data               |       |   |
-|   |   * [likes]            |       |   |   +-------------------------+
-|   |     * user            +--------+   |   |                         |
-|   |                        |       |   |   |   USER                  |
-|   +------------------------+       +-------->  * id              <-------+
-|                                    |   |   |   * display_name        |   |
-|   +------------------------+       |   |   |   * avatar              |   |
-|   |                        |       |   |   |   * bio                 |   |
-|   |   COMMENT              |       |   +----+  * affiliation         |   |
-|   |   * id                 |       |   |   |   * latest_contribution |   |
-+----+  * parent             |       |   |   |                         |   |
-    |   * commenter     +------------+   |   +-------------------------+   |
-    |   * comment            |           |                                 |
-    |                        |           |   +-------------------------+   |
-    +------------------------+           |   |                         |   |
-                                         |   |   USER+PRIVATE          |   |
-    +------------------------+           |   |   * id              +-------+
-    |                        |           |   |   * consent             |   |
-    |   SITE                 |           |   |   * name                |   |
-    |   * id            <----------------+   |                         |   |
-    |   * name               |           |   +-------------------------+   |
-    |   * description        |           |                                 |
-    |   * l                  |           |   +-------------------------+   |
-    |   * g                  |           |   |                         |   |
-    |                        |           |   |   USER_GROUP            |   |
-    +------------------------+           |   |   * id                  |   |
-                                         |   |   * name                |   |
-                                         |   |   * avatar              |   |
-                                         |   |   * description         |   |
-                                         +----+  * affiliation         |   |
-                                             |   * owner           +-------+
-                                             |   * [members]           |   |
-                                             |     * member        +-------+
-                                             +-------------------------+
-
+        +------------------------+               +-------------------------+
+        |                        |               |                         |
+        |   IDEA                 |               |   ACTIVITY              |
++-------->  * id                 |               |   * id              <-------+
+|       |   * group              |               |   * name                |   |
+|       |   * content            |               |   * description         |   |
+|       |   * icon_url           |               |   * icon_url            |   |
+|       |   * status             |               |   * template            |   |
+|       |   * submitter     +------------+       |   * latest_contribution |   |
+|       |   * [likes]            |       |       |                         |   |
+|       |     * user        +------------+       +-------------------------+   |
+|       |   * [comments]         |       |                                     |
+|   +----+    * id               |       |       +-------------------------+   |
+|   |   |                        |       |       |                         |   |
+|   |   +------------------------+       |       |   ACTIVITY_LOCATION     |   |
+|   |                                +------------>  * id                  |   |
+|   |   +------------------------+   |   |       |   * activity        +-------+
+|   |   |                        |   |   |   +----+  * site                |
+|   |   |   OBSERVATION          |   |   |   |   |   * l                   |
++-------->  * id                 |   |   |   |   |   * g                   |
+|   |   |   * activity_location +----+   |   |   |   * latest_contribution |
+|   |   |   * observer          +--------+   |   |                         |
+|   |   |   * l                  |       |   |   +-------------------------+
+|   |   |   * g                  |       |   |
+|   |   |   * data               |       |   |   +-------------------------+
+|   |   |   * [likes]            |       |   |   |                         |
+|   |   |     * user            +--------+   |   |   USER                  |
+|   |   |   * [comments]         |       +-------->  * id              <-------+
+|   +----+    * id               |       |   |   |   * display_name        |   |
+|   |   |                        |       |   |   |   * avatar              |   |
+|   |   +------------------------+       |   |   |   * bio                 |   |
+|   |                                    |   +----+  * affiliation         |   |
+|   |   +------------------------+       |   |   |   * latest_contribution |   |
+|   |   |                        |       |   |   |                         |   |
+|   |   |   COMMENT              |       |   |   +-------------------------+   |
+|   +---->  * id                 |       |   |                                 |
++--------+  * parent             |       |   |   +-------------------------+   |
+        |   * commenter     +------------+   |   |                         |   |
+        |   * comment            |           |   |   USER_PRIVATE          |   |
+        |                        |           |   |   * id              +-------+
+        +------------------------+           |   |   * consent             |   |
+                                             |   |   * name                |   |
+        +------------------------+           |   |                         |   |
+        |                        |           |   +-------------------------+   |
+        |   SITE                 |           |                                 |
+        |   * id            <----------------+   +-------------------------+   |
+        |   * name               |           |   |                         |   |
+        |   * description        |           |   |   USER_GROUP            |   |
+        |   * l                  |           |   |   * id                  |   |
+        |   * g                  |           |   |   * name                |   |
+        |                        |           |   |   * avatar              |   |
+        +------------------------+           |   |   * description         |   |
+                                             +----+  * affiliation         |   |
+                                                 |   * owner           +-------+
+                                                 |   * [members]           |   |
+                                                 |     * member        +-------+
+                                                 |                         |
+                                                 +-------------------------+
 ```
 
 ### Location Data
@@ -136,7 +137,7 @@ values.
 
 ### Timestamps
 
-Every entity, including embedded comments, has two timestamp attributes `created_at` and `updated_at`. These store
+Every entity has two timestamp attributes `created_at` and `updated_at`. These store
 time since creation and last modification respectively as seconds since the Unix epoch. Firebase does not automatically
 manage these attributes, a value must be set by the client in order for Firebase to take any action. It is possible
 however to have Firebase use the server time to populate these fields by 
@@ -541,6 +542,8 @@ Returns all locations where a specific activity is located or lists activity loc
 |   * data               |
 |   * [likes]            |
 |     * user            +-----> USER::id
+|   * [comments]         |
+|     * id              +-----> COMMENT::id
 |                        |
 |                        |
 +------------------------+
@@ -557,6 +560,12 @@ record. Any user may submit an observation.
   - *update*: authenticated creator only
   - *delete*: authenticated creator only
 
+***Comments***:
+- *write*:
+  - *create*: authenticated user
+  - *update*: authenticated comment creator only
+  - *delete*: authenticated comment creator only
+
 **Data**
 
 Each observation contains data specific to the activity it was submitted for. The `data` attribute
@@ -570,7 +579,8 @@ as to what structure this data will have.
     + l (object, required) - the lat/long coordinate where the observation took place
     + g (string, required) - the geohash where the observation took place
     + data (object, required) - freeform data submitted as part of the observation
-    + likes (object, optional) - likes by other users on the observation, may be null/not present if there are no likes
+    + likes (object, optional) - likes by other users on the observation, by user id, may be null/not present if there are no likes
+    + comments (object, optional) - comments by other users on the observation, by comment id, may be null/not present if there are no comments
     
 #### List Observations [GET /observations.json{?orderBy}{?limitToFirst}]
 
@@ -591,18 +601,9 @@ that observation.
           "-KAc5Cx1M6_kGnoOHriy" : {
             "activity_location" : "-KAc4vmZ6F4dVunz5Yvw",
             "comments" : {
-              "-KAc5PhyQsLi_vd6OllJ" : {
-                "comment" : "Fihov zava do ed wocka lej wuw jikoc ace goj kifkevak ildif vealeaca cafpu odna ve.",
-                "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
-              },
-              "-KAc5S9-pjitmmQraJUu" : {
-                "comment" : "Hag aro bud rol go piduzum masu ocrujiho dausnet bi camme warupap nuvpum.",
-                "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
-              },
-              "-KAc5SRJKPwtFvHo_E52" : {
-                "comment" : "Rarsag medirub soez gi vu zogek rit ripmure do kefero so no id jo bu.",
-                "commenter" : "13e2d376-249d-43b5-8b33-74ee689279b8"
-              }
+              "-KAc5PhyQsLi_vd6OllJ" : true,
+              "-KAc5S9-pjitmmQraJUu" : true,
+              "-KAc5SRJKPwtFvHo_E52" : true,
             },
             "created_at" : 1455592890321,
             "data" : {
@@ -619,10 +620,7 @@ that observation.
           "-KAc5D3K4jmr70FiqwjH" : {
             "activity_location" : "-KAc4vMYMlYznb2jusY1",
             "comments" : {
-              "-KAc5UvOoQcjiznIz0uG" : {
-                "comment" : "Luko ve virtafdiv wosepca tejdi ik wic nevan noz ro nugu moguvlu epode ladaf ra jiwkuhol.",
-                "commenter" : "08626fa9-7140-4b02-a635-f92870851396"
-              }
+              "-KAc5UvOoQcjiznIz0uG" : true
             },
             "created_at" : 1455592890789,
             "data" : {
@@ -653,10 +651,7 @@ that observation.
           "-KAc5DPSlxBuRNlPaCMH" : {
             "activity_location" : "-KAc4uDmThJ-lXyXAKCC",
             "comments" : {
-              "-KAc5Pt4r4hlT6_g-PPC" : {
-                "comment" : "Setoto uhuhat menurwef italib daj si mevpovub azcohun upcu huw rifdo hukvi tunruwet gadtojtul.",
-                "commenter" : "3480f925-c4fc-4576-b534-2b38d3fc6456"
-              }
+              "-KAc5Pt4r4hlT6_g-PPC" : true
             },
             "created_at" : 1455592892205,
             "data" : {
@@ -787,6 +782,8 @@ the observation.
 |   * submitter     +---------> USER::id
 |   * [likes]            |
 |     * user        +---------> USER::id
+|   * [comments]         |
+|     * id              +-----> COMMENT::id
 |                        |
 |                        |
 +------------------------+
@@ -802,6 +799,12 @@ may submit an idea.
   - *update*: authenticated creator only
   - *delete*: authenticated creator only
 
+***Comments***:
+- *write*:
+  - *create*: authenticated user
+  - *update*: authenticated comment creator only
+  - *delete*: authenticated comment creator only
+  
 + Attributes
     + id (string, required) - unique autogenerated-id for the idea
     + group (string, required) - the name of the idea group this idea belongs to
@@ -809,7 +812,8 @@ may submit an idea.
     + icon_url (string, required) - url to an icon representing the idea or group
     + status (string, required) - describes the state of the idea (proposed, implemented, deleted, etc.)
     + submitter (string, required) - the id of the user who submitted the idea
-    + likes (object, optional) - likes by other users on the idea, may be null/not present if there are no likes
+    + likes (object, optional) - likes by other users on the idea, by user id, may be null/not present if there are no likes
+    + comments (object, optional) - comments by other users on the idea, by comment id, may be null/not present if there are no comments
 
 #### List Ideas [GET /ideas.json{?orderBy}{?limitToFirst}]
 
@@ -829,22 +833,10 @@ the record for that idea.
         {
           "-KAc5NKSHVFGBjboMfHm": {
             "comments": {
-              "-KAc5Qe879zOW59FnRAo": {
-                "comment": "Ta onsazora ji ves zeda fuz poktewubo nuat dufu ati sacurus oresopeh catri bazus cistud ari.",
-                "commenter": "08626fa9-7140-4b02-a635-f92870851396"
-              },
-              "-KAc5QgM5dpErFm_YRgU": {
-                "comment": "Mi her bopiggu mezsolmi wo lo kovejtej daz ijizeop ivapogin ibamoew poh kukcambom.",
-                "commenter": "c1df9792-0263-4679-8a3a-459af4a5ecb8"
-              },
-              "-KAc5TSAJiGihnLnufmQ": {
-                "comment": "Ocfudtob pemsoh ha ubibu padzigdof sor boc ni pi up wi fe jupo ocucabi odzo rijpamo.",
-                "commenter": "ad90339d-3729-49e1-ac29-2dda4cba0e65"
-              },
-              "-KAc5V1Ck6zRNWkk7WIK": {
-                "comment": "Nij runojpo vuzemwem cueseig bubabkaf azcedo oslad nulakhe vabwop eg amezajucu ij uhvimum.",
-                "commenter": "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
-              }
+              "-KAc5Qe879zOW59FnRAo": true,
+              "-KAc5QgM5dpErFm_YRgU": true,
+              "-KAc5TSAJiGihnLnufmQ": true,
+              "-KAc5V1Ck6zRNWkk7WIK": true
             },
             "content": "Me bug kuazu zonluota amvowibu jirvowif wuce godre tivjiv ripo cuwlapoli gomnip.",
             "created_at": 1455592932853,
@@ -856,26 +848,11 @@ the record for that idea.
           },
           "-KAc5NMqMPHwiCEZl3HX": {
             "comments": {
-              "-KAc5OgpO6R8lbwiGwh5": {
-                "comment": "Ebluej rifaj jinuun wiagomoh dical nisomuk im afu piwutcoh jafnuz hof jecfi nicopnel figwenkuf.",
-                "commenter": "fad7b5e2-91b9-4a2f-8e26-c060acfe13f6"
-              },
-              "-KAc5RsbK1Ue75Ncv1tF": {
-                "comment": "Daji nessepi fuphukpad bojiti nus ji ta rozimzen tuhneh riztipoh hapava dono zibawun deghefse log biuj me re.",
-                "commenter": "fad7b5e2-91b9-4a2f-8e26-c060acfe13f6"
-              },
-              "-KAc5RzOiHb5i-Fdjxyc": {
-                "comment": "Fewifilat papuw ejahahu wup po wac wagorfo eteibe kanda dareap ukadek cuzku idota osusi wuswaz hazolu.",
-                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f"
-              },
-              "-KAc5SoweI9SRicuY1v8": {
-                "comment": "He imavaz zijkomfo ag sobtanan pe peb nunnu mejote lo uva vin giufi geagueg.",
-                "commenter": "1be753aa-1e79-4cbe-ac0f-19fcdf717aa9"
-              },
-              "-KAc5UdPxvUyhd9X3Qs9": {
-                "comment": "Owvawij kokabe micemnum gi jotseh icuv alaho gici asohih elosi nazu gohmoffer.",
-                "commenter": "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
-              }
+              "-KAc5OgpO6R8lbwiGwh5": true,
+              "-KAc5RsbK1Ue75Ncv1tF": true,
+              "-KAc5RzOiHb5i-Fdjxyc": true,
+              "-KAc5SoweI9SRicuY1v8": true,
+              "-KAc5UdPxvUyhd9X3Qs9": true
             },
             "content": "Hotzutte urusivo vislo zolju wuzefa bic te konag burraga vugudah ewedet pe oso vustoj.",
             "created_at": 1455592932996,
@@ -887,22 +864,10 @@ the record for that idea.
           },
           "-KAc5NP4xrS3lTm3O3_L": {
             "comments": {
-              "-KAc5Q7PylghVwMgsGtJ": {
-                "comment": "Rapugu det sivfuk ika kipcu ge sivu igacokhig pohoban giddaz zutewihar waow jisitsuw safumogo emi sigig vahkofij.",
-                "commenter": "cea650e5-e2c3-4453-8ad5-24e359befa23"
-              },
-              "-KAc5QND20dhNuRPbCP_": {
-                "comment": "Cocehfeh ca vicso hopicik ceipe hozlal mukadma ge balfolri vulujvo me nowud moukuulo huur metih ahefe.",
-                "commenter": "779834e1-b0df-40ca-b115-2a8d48bf575b"
-              },
-              "-KAc5QbvB4StSbM4w_xU": {
-                "comment": "Wuhkikcoc noel nubnuv cohlar pun tejgus hiufetek buj nalgihavi geruwuv vid uligupi verge hut eweseseh gisanme gaz ebaete.",
-                "commenter": "13e2d376-249d-43b5-8b33-74ee689279b8"
-              },
-              "-KAc5UFrFFPqbkfCvw7G": {
-                "comment": "Ihetuk femenpe editeb zewcebped dagpo pojol behnew bu jizi nedi idaurahem tohzoot heso viwmo ujfo egkim.",
-                "commenter": "ad90339d-3729-49e1-ac29-2dda4cba0e65"
-              }
+              "-KAc5Q7PylghVwMgsGtJ": true,
+              "-KAc5QND20dhNuRPbCP_": true,
+              "-KAc5QbvB4StSbM4w_xU": true,
+              "-KAc5UFrFFPqbkfCvw7G": true
             },
             "content": "Kofgez kot walag oh sagja daterba pepku senvidjal vidsik kikicpo sugnom jon ki fodumzo ugasub.",
             "created_at": 1455592933142,
@@ -914,14 +879,8 @@ the record for that idea.
           },
           "-KAc5NRKaLMl0XaMnYhr": {
             "comments": {
-              "-KAc5PTIP2RBeL9pBNaY": {
-                "comment": "Ti kesahado nunkijaw jaw ejacikih jafdedvu fih ho hajzazvef du ji saw ceroro piz dasiwje pus.",
-                "commenter": "58405e41-1aff-4c15-b565-c65f6431e439"
-              },
-              "-KAc5RhG90Xfyihp2qk3": {
-                "comment": "Bivgunow lar cikive vuvu benabusu gemtuwon kiglet kif uvitasut saz wackize riemala cego senu one ucukeci cota.",
-                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f"
-              }
+              "-KAc5PTIP2RBeL9pBNaY": true,
+              "-KAc5RhG90Xfyihp2qk3": true
             },
             "content": "Jaraj ezsah rac ocebo kibafami houw cuumrug lazgif egiwi nas isuh gunonso rez.",
             "created_at": 1455592933283,
@@ -944,14 +903,8 @@ Returns a single idea record from the database
 
         {
             "comments": {
-              "-KAc5PTIP2RBeL9pBNaY": {
-                "comment": "Ti kesahado nunkijaw jaw ejacikih jafdedvu fih ho hajzazvef du ji saw ceroro piz dasiwje pus.",
-                "commenter": "58405e41-1aff-4c15-b565-c65f6431e439"
-              },
-              "-KAc5RhG90Xfyihp2qk3": {
-                "comment": "Bivgunow lar cikive vuvu benabusu gemtuwon kiglet kif uvitasut saz wackize riemala cego senu one ucukeci cota.",
-                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f"
-              }
+              "-KAc5PTIP2RBeL9pBNaY": true,
+              "-KAc5RhG90Xfyihp2qk3": true
             },
             "content": "Jaraj ezsah rac ocebo kibafami houw cuumrug lazgif egiwi nas isuh gunonso rez.",
             "created_at": 1455592933283,
@@ -1245,7 +1198,7 @@ Users may belong to one or more Groups, which contain one or more users. A group
     + creator (string, required) - the id of the user who created the group
     + members (object, optional) - id's of each user who belongs to the group, may be null/absent if there are no other members
 
-### Commenting [/{commentable}/{id}/comments]
+### Commenting [/comments]
 
 Both `Idea` and `Observation` support comments. Any user may comment on any other users idea or observation.
 Comments are stored in a separate table.
@@ -1255,12 +1208,74 @@ Comments are stored in a separate table.
 - *write*:
   - *create*: authenticated user
   - *update*: authenticated commenter only
-  - *delete*: authenticated commenter or parent record owner
+  - *delete*: authenticated commenter only
 
 + Attributes
+    + id (string, required) - the id of the comment
+    + parent (string, required) - the id of the parent record
     + commenter (string, required) - the id of the user who created the comment
     + comment (string, required) - the user submitted comment text
 
+#### List Comments [GET /comments.json{?orderBy}{?limitToFirst}]
+
+Returns an object containing all comments available in the database. The response will have a
+key-value pair for each comment where the key is the comment's `id` and the value is the record for
+that comment.
+
+> NOTE: The full set of comment data is potentially huge. You should never make a raw request against this
+> endpoint without some form or query and/or response limit. Data export is available for offline research.
+
++ Parameters
+    + orderBy: `"$key"` (string, optional) - what key to order the results by
+    + limitToFirst: `4` (number, optional) - limit the number of responses
+
++ Response 200 (application/json)
+
+        {
+          "-KAc5PhyQsLi_vd6OllJ" : {
+            "id" : "-KAc5PhyQsLi_vd6OllJ",
+            "parent" : "-KAc5Cx1M6_kGnoOHriy",
+            "comment" : "Fihov zava do ed wocka lej wuw jikoc ace goj kifkevak ildif vealeaca cafpu odna ve.",
+            "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
+            "created_at" : 1455592892205,
+            "updated_at" : 1455592892205
+          },
+          "-KAc5S9-pjitmmQraJUu" : {
+            "id" : "-KAc5S9-pjitmmQraJUu",
+            "parent" : "-KAc5Cx1M6_kGnoOHriy",
+            "comment" : "Hag aro bud rol go piduzum masu ocrujiho dausnet bi camme warupap nuvpum.",
+            "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
+            "created_at" : 1455592892205,
+            "updated_at" : 1455592892205
+          },
+          "-KAc5SRJKPwtFvHo_E52" : {
+            "id" : "-KAc5SRJKPwtFvHo_E52",
+            "parent" : "-KAc5Cx1M6_kGnoOHriy",
+            "comment" : "Rarsag medirub soez gi vu zogek rit ripmure do kefero so no id jo bu.",
+            "commenter" : "13e2d376-249d-43b5-8b33-74ee689279b8",
+            "created_at" : 1455592892205,
+            "updated_at" : 1455592892205
+          }
+        }
+        
+#### Read Comment [GET /comments/{id}.json]
+
+Returns a single comment record from the database
+
++ Parameters
+    + id: `-KAc5PhyQsLi_vd6OllJ` (required) - the id of the comment to read.
+
++ Response 200 (application/json)
+
+        {
+            "id" : "-KAc5PhyQsLi_vd6OllJ",
+            "parent" : "-KAc5Cx1M6_kGnoOHriy",
+            "comment" : "Fihov zava do ed wocka lej wuw jikoc ace goj kifkevak ildif vealeaca cafpu odna ve.",
+            "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
+            "created_at" : 1455592892205,
+            "updated_at" : 1455592892205
+          }
+        
 #### Create Comment [POST /{commentable}/{id}/comments.json]
 
 Comment on an existing idea or observation. Comment records require their firebase
@@ -1299,6 +1314,8 @@ for other records. Comments only contain one updateable attribute which is `comm
     + Body
             
             {
+                "id": "-KAc5PTIP2RBeL9pBNaY",
+                "parent": "KAc5Cx1M6_kGnoOHriy",
                 "comment": "Actually that was a good idea",
                 "modified_at": {".sv": "timestamp" }
             }
@@ -1306,6 +1323,8 @@ for other records. Comments only contain one updateable attribute which is `comm
 + Response 200 (application/json)
 
         {
+            "id": "-KAc5PTIP2RBeL9pBNaY",
+            "parent": "KAc5Cx1M6_kGnoOHriy",
             "comment": "Actually that was a good idea",
             "modified_at": 1455592933283
         }
