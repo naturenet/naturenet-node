@@ -4,6 +4,7 @@ type Comment extends Timestamped {
     context: String
     commenter: String
     comment: String
+    status: String | Null
 
     validate() {
         this.id == c_id
