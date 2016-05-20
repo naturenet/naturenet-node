@@ -31,6 +31,8 @@ All links and the interactive samples in this document are based on the `Staging
 
 ## Heroku Worker
 
+> NOTE: The heroku app is not yet implemented. All references to Heroku functionality are hypothetical.
+
 In addition to Firebase there is a NatureNet app hosted on Heroku which performs background data processing as well
 as providing some additional REST endpoints. As with the firebase databases there are three versions of the worker
 for the same purpose. Should full text search be required the heroku worker will host the 
@@ -46,8 +48,6 @@ for the same purpose. Should full text search be required the heroku worker will
   REST endpoints are active and target the staging database. Watches the production database for events as
   mirrors data create/update/delete into staging.
 
-> NOTE: The heroku app is not yet online.
-
 ## HTTP Access and Native Clients
 
 Firebase provides both an HTTP REST API and native clients in a variety of languages. This documentation will as much as
@@ -58,55 +58,64 @@ sample requests here do not always show or make use of the full range of paramet
 ## Data Model
 
 ```
-+------------------------+                    +----------------------+
-|                        |                    |                      |
-|   SITE                 |                    |   ACTIVITY           |
-|   * id           <----------------------+   |   * id          <-----------+
-|   * name               |                |   |   * name             |      |
-|   * description        |                |   |   * description      |      |
-|   * l                  |                |   |   * icon_url         |      |
-|   * g                  |                |   |   * template         |      |
-|                        |                |   |                      |      |
-+------------------------+                |   +----------------------+      |
-                                          |                                 |
-                                          |                                 |
-+------------------------+                |   +----------------------+      |
-|                        |                |   |                      |      |
-|   IDEA                 |                |   |   ACTIVITY_LOCATION  |      |
-|   * id                 |    +---------------->  * id               |      |
-|   * group              |    |           |   |   * activity    +-----------+
-|   * content            |    |           +----+  * site             |
-|   * icon_url           |    |               |   * l                |
-|   * status             |    |               |   * g                |
-|   * submitter     +----------------+        |                      |
-|   * [comments]         |    |      |        +----------------------+
-|     * commenter   +----------------+
-|     * comment          |    |      |        +----------------------+
-|                        |    |      |        |                      |
-+------------------------+    |      |        |   USER               |
-                              |      +--------->  * id          <-----------+
-                              |      |        |   * display_name     |      |
-+------------------------+    |      |        |   * avatar           |      |
-|                        |    |      |        |   * email            |      |
-|   OBSERVATION          |    |      |        |   * consent          |      |
-|   * id                 |    |      |        |   * bio              |      |
-|   * activity_location +-----+      |        |   * affiliation      |      |
-|   * observer          +------------+        |                      |      |
-|   * l                  |           |        +----------------------+      |
-|   * g                  |           |                                      |
-|   * data               |           |        +----------------------+      |
-|   * [comments]         |           |        |                      |      |
-|     * commenter       +------------+        |   USER_GROUP         |      |
-|     * comment          |                    |   * id               |      |
-|                        |                    |   * name             |      |
-|                        |                    |   * avatar           |      |
-|                        |                    |   * description      |      |
-|                        |                    |   * affiliation      |      |
-+------------------------+                    |   * owner           +-------+
-                                              |   * [members]        |      |
-                                              |     * member        +-------+
-                                              +----------------------+
-
+        +------------------------+               +-------------------------+
+        |                        |               |                         |
+        |   IDEA                 |               |   ACTIVITY              |
++-------->  * id                 |               |   * id              <-------+
+|       |   * group              |               |   * name                |   |
+|       |   * content            |               |   * description         |   |
+|       |   * icon_url           |               |   * icon_url            |   |
+|       |   * status             |               |   * status              |   |
+|       |   * submitter     +------------+       |   * latest_contribution |   |
+|       |   * [likes]            |       |       |                         |   |
+|       |     * user        +------------+       +-------------------------+   |
+|       |   * [comments]         |       |                                     |
+|   +----+    * id               |       |       +-------------------------+   |
+|   |   |                        |       |       |                         |   |
+|   |   +------------------------+       |       |   ACTIVITY_LOCATION     |   |
+|   |                                +------------>  * id                  |   |
+|   |   +------------------------+   |   |       |   * activity        +-------+
+|   |   |                        |   |   |   +----+  * site                |
+|   |   |   OBSERVATION          |   |   |   |   |   * l                   |
++-------->  * id                 |   |   |   |   |   * g                   |
+|   |   |   * activity_location +----+   |   |   |   * latest_contribution |
+|   |   |   * observer          +--------+   |   |                         |
+|   |   |   * l                  |       |   |   +-------------------------+
+|   |   |   * g                  |       |   |
+|   |   |   * data               |       |   |   +-------------------------+
+|   |   |   * [likes]            |       |   |   |                         |
+|   |   |     * user            +--------+   |   |   USER                  |
+|   |   |   * [comments]         |       +-------->  * id              <-------+
+|   +----+    * id               |       |   |   |   * display_name        |   |
+|   |   |                        |       |   |   |   * avatar              |   |
+|   |   +------------------------+       |   |   |   * bio                 |   |
+|   |                                    |   +----+  * affiliation         |   |
+|   |   +------------------------+       |   |   |   * latest_contribution |   |
+|   |   |                        |       |   |   |                         |   |
+|   |   |   COMMENT              |       |   |   +-------------------------+   |
+|   +---->  * id                 |       |   |                                 |
++--------+  * parent             |       |   |   +-------------------------+   |
+        |   * commenter     +------------+   |   |                         |   |
+        |   * comment            |           |   |   USER_PRIVATE          |   |
+        |                        |           |   |   * id              +-------+
+        +------------------------+           |   |   * consent             |   |
+                                             |   |   * name                |   |
+        +------------------------+           |   |                         |   |
+        |                        |           |   +-------------------------+   |
+        |   SITE                 |           |                                 |
+        |   * id            <----------------+   +-------------------------+   |
+        |   * name               |           |   |                         |   |
+        |   * description        |           |   |   USER_GROUP            |   |
+        |   * l                  |           |   |   * id                  |   |
+        |   * g                  |           |   |   * name                |   |
+        |                        |           |   |   * avatar              |   |
+        +------------------------+           |   |   * description         |   |
+                                             +----+  * affiliation         |   |
+                                                 |   * owner           +-------+
+                                                 |   * [members]           |   |
+                                                 |     * member        +-------+
+                                                 |                         |
+                                                 +-------------------------+
 ```
 
 ### Location Data
@@ -128,7 +137,7 @@ values.
 
 ### Timestamps
 
-Every entity, including embedded comments, has two timestamp attributes `created_at` and `updated_at`. These store
+Every entity has two timestamp attributes `created_at` and `updated_at`. These store
 time since creation and last modification respectively as seconds since the Unix epoch. Firebase does not automatically
 manage these attributes, a value must be set by the client in order for Firebase to take any action. It is possible
 however to have Firebase use the server time to populate these fields by 
@@ -240,6 +249,22 @@ query.on('ready', function() {
 });
 ```
 
+### Values & Validation
+Firebase validates data on write requests before applying changes. Validation rules can take into account 
+paths, child names, types, and values depending on context. In general, children will be checked by name 
+and type, and may be required or optional. Any other children will be rejected. Child values are not generally 
+checked except when the value should match the UID of the current user or the key of the parent record.
+Validation takes into account all records in the heirarchy from the root to the place of the write, so a 
+malformed parent record will reject any writes to its children even if the new data is valid. Validation is 
+done at the record level, so new records must be created as a single valid write rather than individual values.
+Validation rules can be accessed in the Security & Rules tab of the Firebase dashboard, or in a more human-readable
+format in the [naturenet-node](https://github.com/naturenet/naturenet-node/tree/master/rules) repository.
+
+Many records contain arbitrary string values. These strings may represent user input, or enumerated values which are 
+meaningful to the clients. These values may be subject to change, and may be case-insensitive, so care should be taken
+when comparing or checking for these values in client code. Expected values are called out below with their respective records.
+
+
 ### Sites [/sites]
 
 ```
@@ -328,7 +353,7 @@ Returns a single site record from the database.
 |   * name             |
 |   * description      |
 |   * icon_url         |
-|   * template         |
+|   * status           |
 |                      |
 +----------------------+
 ```
@@ -346,7 +371,7 @@ Activity data cannot be created via any of the apps.
 
 **Template**
 
-> NOTE: Speculative
+> NOTE: Speculative. Not currently implemented.
 
 The template value in an activity record is data to be consumed by the client application
 in order to determine how to display the activity to the user. The object will contain one
@@ -367,7 +392,8 @@ template: {
     + name (string, required) - the name of the activity for display
     + description (string, required) - a description of the activity
     + icon_url (string, required) - an icon to represent the activity
-    + template (object, required) - the client template used to render the activity
+    + template (object, optional) - the client template used to render the activity
+    + status (string, required) - indicates whether the activity should accept new observations (values: "Open", "Completed")
 
 #### List Activities [GET /activities.json]
 
@@ -432,27 +458,31 @@ Returns a single activity record from the database.
 ### Activity Locations [/geo/activities]
 
 ```
-+----------------------+
-|                      |
-|   ACTIVITY_LOCATION  |
-|   * id          <----------- OBSERVATION::activity_location
-|   * activity    +----------> ACTIVITTY::id
-|   * site        +----------> SITE::id
-|   * l                |
-|   * g                |
-|                      |
-|                      |
-+----------------------+
++-------------------------+
+|                         |
+|   ACTIVITY_LOCATION     |
+|   * id          <-------------- OBSERVATION::activity_location
+|   * activity    +-------------> ACTIVITTY::id
+|   * site        +-------------> SITE::id
+|   * l                   |
+|   * g                   |
+|   * latest_contribution |
+|                         |
++-------------------------+
 ```
 
 The activity location collection links activity records to one or more locations in one or more sites.
 Each entry in this collection represents one location where an activity is present.
 
-Activity locations cannot be created via any of the apps.
+Activity locations cannot be created via any of the apps, however an authenticated user can update
+the `latest_contribution` field.
 
 **Access**:
 - *read*: public, unauthenticated
 - *write*: forbidden
+
+***latest_contribution***:
+- *write*: authenticated user
 
 + Attributes
     + id (string, required) - unique autogenerated-id for the activity location
@@ -460,6 +490,7 @@ Activity locations cannot be created via any of the apps.
     + site (string, required) - the id of the site associated with this location
     + l (object, required) - the lat/long coordinate where the activity can be performed
     + g (string, required) - the geohash where the activity can be performed
+    + latest_contribution (number, optional) - the timestamp of the most recent observation associated with this activity location
     
 #### List Activity Locations [GET /geo/activities.json]
 
@@ -526,9 +557,10 @@ Returns all locations where a specific activity is located or lists activity loc
 |   * l                  |
 |   * g                  |
 |   * data               |
+|   * [likes]            |
+|     * user            +-----> USER::id
 |   * [comments]         |
-|     * commenter       +-----> USER::id
-|     * comment          |
+|     * id              +-----> COMMENT::id
 |                        |
 |                        |
 +------------------------+
@@ -545,6 +577,12 @@ record. Any user may submit an observation.
   - *update*: authenticated creator only
   - *delete*: authenticated creator only
 
+***Comments***:
+- *write*:
+  - *create*: authenticated user
+  - *update*: authenticated comment creator only
+  - *delete*: authenticated comment creator only
+
 **Data**
 
 Each observation contains data specific to the activity it was submitted for. The `data` attribute
@@ -552,13 +590,14 @@ in an observation stores the actual user submitted data as a freeform object. Th
 as to what structure this data will have.
 
 + Attributes
-    + id (string, required) - unique autogenerated-id for the observation
-    + activity_location (string, required) - the id of the activity location pair this observation was recorded for
-    + observer (string, required) - the id of the user who submitted the observation
+    + id (string, required) - unique autogenerated-id for the observation (MUST match the key of this record)
+    + activity_location (string, required) - the id of the activity location pair this observation was recorded for (Should match the key of an ACTIVITY_LOCATION whose site matches the submitter's affiliation)
+    + observer (string, required) - the id of the user who submitted the observation (MUST match authenticated user's UID)
     + l (object, required) - the lat/long coordinate where the observation took place
     + g (string, required) - the geohash where the observation took place
     + data (object, required) - freeform data submitted as part of the observation
-    + comments (object, optional) - comments by other users on the observation, may be null/not present if there are no comments
+    + likes (object, optional) - likes by other users on the observation, by user id, may be null/not present if there are no likes
+    + comments (object, optional) - comments by other users on the observation, by comment id, may be null/not present if there are no comments
     
 #### List Observations [GET /observations.json{?orderBy}{?limitToFirst}]
 
@@ -579,18 +618,9 @@ that observation.
           "-KAc5Cx1M6_kGnoOHriy" : {
             "activity_location" : "-KAc4vmZ6F4dVunz5Yvw",
             "comments" : {
-              "-KAc5PhyQsLi_vd6OllJ" : {
-                "comment" : "Fihov zava do ed wocka lej wuw jikoc ace goj kifkevak ildif vealeaca cafpu odna ve.",
-                "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
-              },
-              "-KAc5S9-pjitmmQraJUu" : {
-                "comment" : "Hag aro bud rol go piduzum masu ocrujiho dausnet bi camme warupap nuvpum.",
-                "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
-              },
-              "-KAc5SRJKPwtFvHo_E52" : {
-                "comment" : "Rarsag medirub soez gi vu zogek rit ripmure do kefero so no id jo bu.",
-                "commenter" : "13e2d376-249d-43b5-8b33-74ee689279b8"
-              }
+              "-KAc5PhyQsLi_vd6OllJ" : true,
+              "-KAc5S9-pjitmmQraJUu" : true,
+              "-KAc5SRJKPwtFvHo_E52" : true,
             },
             "created_at" : 1455592890321,
             "data" : {
@@ -607,10 +637,7 @@ that observation.
           "-KAc5D3K4jmr70FiqwjH" : {
             "activity_location" : "-KAc4vMYMlYznb2jusY1",
             "comments" : {
-              "-KAc5UvOoQcjiznIz0uG" : {
-                "comment" : "Luko ve virtafdiv wosepca tejdi ik wic nevan noz ro nugu moguvlu epode ladaf ra jiwkuhol.",
-                "commenter" : "08626fa9-7140-4b02-a635-f92870851396"
-              }
+              "-KAc5UvOoQcjiznIz0uG" : true
             },
             "created_at" : 1455592890789,
             "data" : {
@@ -641,10 +668,7 @@ that observation.
           "-KAc5DPSlxBuRNlPaCMH" : {
             "activity_location" : "-KAc4uDmThJ-lXyXAKCC",
             "comments" : {
-              "-KAc5Pt4r4hlT6_g-PPC" : {
-                "comment" : "Setoto uhuhat menurwef italib daj si mevpovub azcohun upcu huw rifdo hukvi tunruwet gadtojtul.",
-                "commenter" : "3480f925-c4fc-4576-b534-2b38d3fc6456"
-              }
+              "-KAc5Pt4r4hlT6_g-PPC" : true
             },
             "created_at" : 1455592892205,
             "data" : {
@@ -693,16 +717,23 @@ Returns a single observation record from the database
 #### Create Observation [POST /observations.json]
 
 Submit a new observation for the current user. Observation records require their firebase
-key to be stored as part of the record, requests that do not contain the id will be rejected. 
+key to be stored as part of the record, requests that do not contain the id will be rejected.
+All observations should be created as multi-location updates, also updating the `latest_contribution`
+timestamp of the associated user and activity_location objects.
 It is recommended to use a native client to achieve this:
 
 ```
 var observations = new Firebase('https://naturenet-staging.firebaseio.com/observations');
-var record = observations.push();
-record.set({
-    id: record.key(),
-    // other attributes
-})
+var obsId = observations.push().key();
+var newData = {};
+newData['/observations/' + obsId] = {
+  id: obsId,
+  observer: userId,
+  activity_location: projectId,
+  // other attributes
+};
+newData['/users/' + userId + '/latest_contribution'] = Firebase.ServerValue.TIMESTAMP;
+newData['/geo/activities/' + projectId + '/latest_contribution'] = Firebase.ServerValue.TIMESTAMP;
 ```
 
 Alternatively the heroku worker provides an endpoint that will handle this on the clients
@@ -766,9 +797,10 @@ the observation.
 |   * icon_url           |
 |   * status             |
 |   * submitter     +---------> USER::id
+|   * [likes]            |
+|     * user        +---------> USER::id
 |   * [comments]         |
-|     * commenter   +---------> USER::id
-|     * comment          |
+|     * id              +-----> COMMENT::id
 |                        |
 |                        |
 +------------------------+
@@ -777,6 +809,14 @@ the observation.
 The ideas collection contains all user submitted design ideas for improving NatureNet itself. Any user
 may submit an idea.
 
+**Group**
+Group denotes the category that the idea belongs to. New ideas should use either "Idea" or "Challenge". 
+Legacy ideas may have other values, which should be treated as "Idea" for display purposes.
+
+**Status**
+Status indicates the idea's place in the design process. All new ideas should be created with the status "to do". 
+At some point the status may change to values such as "doing", "done", "deleted", or others TBD.
+
 **Access**:
 - *read*: public, unauthenticated
 - *write*:
@@ -784,14 +824,21 @@ may submit an idea.
   - *update*: authenticated creator only
   - *delete*: authenticated creator only
 
+***Comments***:
+- *write*:
+  - *create*: authenticated user
+  - *update*: authenticated comment creator only
+  - *delete*: authenticated comment creator only
+  
 + Attributes
-    + id (string, required) - unique autogenerated-id for the idea
-    + group (string, required) - the name of the idea group this idea belongs to
+    + id (string, required) - unique autogenerated-id for the idea (MUST match the key of this record)
+    + group (string, required) - the name of the idea group this idea belongs to (Should be "Idea" or "Challenge")
     + content (string, required) - the user submitted text describing the idea
-    + icon_url (string, required) - url to an icon representing the idea or group
-    + status (string, required) - describes the state of the idea (proposed, implemented, deleted, etc.)
-    + submitter (string, required) - the id of the user who submitted the idea
-    + comments (object, optional) - comments by other users on the idea, may be null/not present if there are no comments
+    + icon_url (string, optional) - url to an icon representing the idea or group, or a user-submitted image to illustrate the idea
+    + status (string, required) - describes the state of the idea (proposed, implemented, deleted, etc.) (Should be "to do" when created)
+    + submitter (string, required) - the id of the user who submitted the idea (MUST match the authenticated user's UID)
+    + likes (object, optional) - likes by other users on the idea, by user id, may be null/not present if there are no likes
+    + comments (object, optional) - comments by other users on the idea, by comment id, may be null/not present if there are no comments
 
 #### List Ideas [GET /ideas.json{?orderBy}{?limitToFirst}]
 
@@ -811,22 +858,10 @@ the record for that idea.
         {
           "-KAc5NKSHVFGBjboMfHm": {
             "comments": {
-              "-KAc5Qe879zOW59FnRAo": {
-                "comment": "Ta onsazora ji ves zeda fuz poktewubo nuat dufu ati sacurus oresopeh catri bazus cistud ari.",
-                "commenter": "08626fa9-7140-4b02-a635-f92870851396"
-              },
-              "-KAc5QgM5dpErFm_YRgU": {
-                "comment": "Mi her bopiggu mezsolmi wo lo kovejtej daz ijizeop ivapogin ibamoew poh kukcambom.",
-                "commenter": "c1df9792-0263-4679-8a3a-459af4a5ecb8"
-              },
-              "-KAc5TSAJiGihnLnufmQ": {
-                "comment": "Ocfudtob pemsoh ha ubibu padzigdof sor boc ni pi up wi fe jupo ocucabi odzo rijpamo.",
-                "commenter": "ad90339d-3729-49e1-ac29-2dda4cba0e65"
-              },
-              "-KAc5V1Ck6zRNWkk7WIK": {
-                "comment": "Nij runojpo vuzemwem cueseig bubabkaf azcedo oslad nulakhe vabwop eg amezajucu ij uhvimum.",
-                "commenter": "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
-              }
+              "-KAc5Qe879zOW59FnRAo": true,
+              "-KAc5QgM5dpErFm_YRgU": true,
+              "-KAc5TSAJiGihnLnufmQ": true,
+              "-KAc5V1Ck6zRNWkk7WIK": true
             },
             "content": "Me bug kuazu zonluota amvowibu jirvowif wuce godre tivjiv ripo cuwlapoli gomnip.",
             "created_at": 1455592932853,
@@ -838,26 +873,11 @@ the record for that idea.
           },
           "-KAc5NMqMPHwiCEZl3HX": {
             "comments": {
-              "-KAc5OgpO6R8lbwiGwh5": {
-                "comment": "Ebluej rifaj jinuun wiagomoh dical nisomuk im afu piwutcoh jafnuz hof jecfi nicopnel figwenkuf.",
-                "commenter": "fad7b5e2-91b9-4a2f-8e26-c060acfe13f6"
-              },
-              "-KAc5RsbK1Ue75Ncv1tF": {
-                "comment": "Daji nessepi fuphukpad bojiti nus ji ta rozimzen tuhneh riztipoh hapava dono zibawun deghefse log biuj me re.",
-                "commenter": "fad7b5e2-91b9-4a2f-8e26-c060acfe13f6"
-              },
-              "-KAc5RzOiHb5i-Fdjxyc": {
-                "comment": "Fewifilat papuw ejahahu wup po wac wagorfo eteibe kanda dareap ukadek cuzku idota osusi wuswaz hazolu.",
-                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f"
-              },
-              "-KAc5SoweI9SRicuY1v8": {
-                "comment": "He imavaz zijkomfo ag sobtanan pe peb nunnu mejote lo uva vin giufi geagueg.",
-                "commenter": "1be753aa-1e79-4cbe-ac0f-19fcdf717aa9"
-              },
-              "-KAc5UdPxvUyhd9X3Qs9": {
-                "comment": "Owvawij kokabe micemnum gi jotseh icuv alaho gici asohih elosi nazu gohmoffer.",
-                "commenter": "84f4926d-efd6-4f21-b521-3ccebc36f3d1"
-              }
+              "-KAc5OgpO6R8lbwiGwh5": true,
+              "-KAc5RsbK1Ue75Ncv1tF": true,
+              "-KAc5RzOiHb5i-Fdjxyc": true,
+              "-KAc5SoweI9SRicuY1v8": true,
+              "-KAc5UdPxvUyhd9X3Qs9": true
             },
             "content": "Hotzutte urusivo vislo zolju wuzefa bic te konag burraga vugudah ewedet pe oso vustoj.",
             "created_at": 1455592932996,
@@ -869,22 +889,10 @@ the record for that idea.
           },
           "-KAc5NP4xrS3lTm3O3_L": {
             "comments": {
-              "-KAc5Q7PylghVwMgsGtJ": {
-                "comment": "Rapugu det sivfuk ika kipcu ge sivu igacokhig pohoban giddaz zutewihar waow jisitsuw safumogo emi sigig vahkofij.",
-                "commenter": "cea650e5-e2c3-4453-8ad5-24e359befa23"
-              },
-              "-KAc5QND20dhNuRPbCP_": {
-                "comment": "Cocehfeh ca vicso hopicik ceipe hozlal mukadma ge balfolri vulujvo me nowud moukuulo huur metih ahefe.",
-                "commenter": "779834e1-b0df-40ca-b115-2a8d48bf575b"
-              },
-              "-KAc5QbvB4StSbM4w_xU": {
-                "comment": "Wuhkikcoc noel nubnuv cohlar pun tejgus hiufetek buj nalgihavi geruwuv vid uligupi verge hut eweseseh gisanme gaz ebaete.",
-                "commenter": "13e2d376-249d-43b5-8b33-74ee689279b8"
-              },
-              "-KAc5UFrFFPqbkfCvw7G": {
-                "comment": "Ihetuk femenpe editeb zewcebped dagpo pojol behnew bu jizi nedi idaurahem tohzoot heso viwmo ujfo egkim.",
-                "commenter": "ad90339d-3729-49e1-ac29-2dda4cba0e65"
-              }
+              "-KAc5Q7PylghVwMgsGtJ": true,
+              "-KAc5QND20dhNuRPbCP_": true,
+              "-KAc5QbvB4StSbM4w_xU": true,
+              "-KAc5UFrFFPqbkfCvw7G": true
             },
             "content": "Kofgez kot walag oh sagja daterba pepku senvidjal vidsik kikicpo sugnom jon ki fodumzo ugasub.",
             "created_at": 1455592933142,
@@ -896,14 +904,8 @@ the record for that idea.
           },
           "-KAc5NRKaLMl0XaMnYhr": {
             "comments": {
-              "-KAc5PTIP2RBeL9pBNaY": {
-                "comment": "Ti kesahado nunkijaw jaw ejacikih jafdedvu fih ho hajzazvef du ji saw ceroro piz dasiwje pus.",
-                "commenter": "58405e41-1aff-4c15-b565-c65f6431e439"
-              },
-              "-KAc5RhG90Xfyihp2qk3": {
-                "comment": "Bivgunow lar cikive vuvu benabusu gemtuwon kiglet kif uvitasut saz wackize riemala cego senu one ucukeci cota.",
-                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f"
-              }
+              "-KAc5PTIP2RBeL9pBNaY": true,
+              "-KAc5RhG90Xfyihp2qk3": true
             },
             "content": "Jaraj ezsah rac ocebo kibafami houw cuumrug lazgif egiwi nas isuh gunonso rez.",
             "created_at": 1455592933283,
@@ -926,14 +928,8 @@ Returns a single idea record from the database
 
         {
             "comments": {
-              "-KAc5PTIP2RBeL9pBNaY": {
-                "comment": "Ti kesahado nunkijaw jaw ejacikih jafdedvu fih ho hajzazvef du ji saw ceroro piz dasiwje pus.",
-                "commenter": "58405e41-1aff-4c15-b565-c65f6431e439"
-              },
-              "-KAc5RhG90Xfyihp2qk3": {
-                "comment": "Bivgunow lar cikive vuvu benabusu gemtuwon kiglet kif uvitasut saz wackize riemala cego senu one ucukeci cota.",
-                "commenter": "ae359343-77ff-4e67-96d6-65d921bf127f"
-              }
+              "-KAc5PTIP2RBeL9pBNaY": true,
+              "-KAc5RhG90Xfyihp2qk3": true
             },
             "content": "Jaraj ezsah rac ocebo kibafami houw cuumrug lazgif egiwi nas isuh gunonso rez.",
             "created_at": 1455592933283,
@@ -1006,23 +1002,23 @@ submitted the idea.
 ### Users [/users]
 
 ```
-+----------------------+
-|                      |
-|   USER               |
-|   * id            <-------+-- IDEA::submitter
-|   * display_name     |    |
-|   * avatar           |    +-- OBSERVATION::observer
-|   * email            |    |
-|   * consent          |    +-- [comments]::commenter
-|   * bio              |
-|   * affiliation      |
-|                      |
-+----------------------+
++-------------------------+
+|                         |
+|   USER                  |
+|   * id          <------------+-- IDEA::submitter
+|   * display_name        |    |
+|   * avatar              |    +-- OBSERVATION::observer
+|   * bio                 |    |
+|   * affiliation         |    +-- [comments]::commenter
+|   * latest_contribution |
+|                         |
++-------------------------+
 ```
 
 The users collection contains the application domain data about registered NatureNet user.
 The user record does not contain any actual authentication information as this is handled
-by Firebase and is not exposed.
+by Firebase and is not exposed. The user record is publicly readable and thus contains only
+public profile information.
 
 **`id` and `auth.uid`**
 
@@ -1033,21 +1029,8 @@ information.
 
 [Firebase documentation](https://www.firebase.com/docs/security/guide/user-security.html)
 
-**Consent**
-
-In order to register users must provide consent to have their data used for research purposes.
-There are several required consent clauses and several optional ones. If a user does not accept 
-the required content clauses they *may not register*. This attribute will contain the details of
-which optional consent clauses the user accepted, example:
-
-```
-    "consent": {
-        "record": true,
-        "survey": false
-    }
-```
-
 **Access**:
+
 - *read*: public, unauthenticated
 - *write*:
   - *create*: authenticated user
@@ -1055,23 +1038,66 @@ which optional consent clauses the user accepted, example:
   - *delete*: authenticated owner only
 
 + Attributes
-    + id (string, required) - the firebase generated auth id for this user
+    + id (string, required) - the firebase generated auth id for this user (MUST match the key of this record)
     + display_name (string, required) - the name the user wants displayed on their content
-    + avatar (string, required) - url to an image representing the user
-    + email (string, required) - the users email address
-    + consent (object, required) - what consent data the user has provided.
+    + avatar (string, optional) - url to an image representing the user
     + bio (string, optional) - brief text describing the user
-    + affiliation (string, optional) - the user's role at their home site
+    + affiliation (string, required) - the site the user is associated with (Should match the key of a SITE record)
+    + latest_contribution (number, optional) - the timestamp of the most recent observation associated with this user, if any
 
+### Users Private [/users-private]
+
+```
++----------------------+
+|                      |
+|   USER-PRIVATE       |
+|   * id          <----+-- USER::id
+|   * consent          |
+|   * name             |
+|                      |
++----------------------+
+```
+
+The users-private collection contains the non-public data about registered NatureNet users.
+The private record does not contain any actual authentication information as this is handled
+by Firebase and is not exposed. The private record has restricted read permissions to protect
+the user's privacy.
+
+**Consent**
+
+In order to register users must provide consent to have their data used for research purposes.
+There are several required consent clauses and several optional ones. If a user does not accept 
+the required content clauses they *may not register*. This attribute will contain the details of
+the required and which optional consent clauses the user accepted, example:
+
+```
+    "consent": {
+        "required": true,
+        "record": true,
+        "survey": false
+    }
+```
+
+**Access**:
+
+- *read*: authenticated owner only
+- *write*:
+  - *create*: authenticated user
+  - *update*: authenticated owner only
+  - *delete*: authenticated owner only
+
++ Attributes
+    + id (string, required) - the firebase generated auth id for this user (MUST match the key of this record)
+    + consent (object, required) - what consent data the user has provided. (MUST contain one or more children with boolean values)
+    + name (string, required) - the user's real name
+    
 #### Create User [POST /users]
 
-User signup is a two part process:
+User signup is a three part process:
 
 1. Create the authentication record with Firebase.
-2. Create the User record in the database.
-
-Signup is currently only possible using the native client with the exception of email/password users 
-for which the Heroku worker provides a REST API.
+2. Authenticate with the new user record.
+3. Create the multi-part User and User-Private record in the database.
 
 **Email & Password Account**
 
@@ -1097,17 +1123,6 @@ users.createUser({ email: "me@me.com", password: "secret" })
 
 ```
 
-*Heroku Worker*
-```
-POST https://staging.nature-net.org/signup
-
-{
-    "email": "me@me.com",
-    "password": "secret",
-    // other properties
-}
-```
-
 [Listing of signup and authentication errors](https://www.firebase.com/docs/web/guide/user-auth.html#section-full-error)
 
 **Google Account**
@@ -1131,13 +1146,8 @@ Returns a single user record from the database.
 
         {
           "avatar": "https://s3.amazonaws.com/uifaces/faces/twitter/doctor_weber/48.jpg",
-          "consent": {
-            "record": true,
-            "survey": true
-          },
           "created_at": 1455592828926,
           "display_name": "cu nesab",
-          "email": "bilomunesd@nature-net.org",
           "id": "0737de1c-b9b9-46be-ab5b-3227274c2ced",
           "testuser": true,
           "updated_at": 1455592828926
@@ -1213,34 +1223,104 @@ Users may belong to one or more Groups, which contain one or more users. A group
     + creator (string, required) - the id of the user who created the group
     + members (object, optional) - id's of each user who belongs to the group, may be null/absent if there are no other members
 
-### Commenting [/{commentable}/{id}/comments]
+### Commenting [/comments]
 
 Both `Idea` and `Observation` support comments. Any user may comment on any other users idea or observation.
-Comments are embedded within the main record and are not stored in a separate table.
+Comments are stored in a separate table.
 
 **Access**:
 - *read*: public, unauthenticated
 - *write*:
   - *create*: authenticated user
   - *update*: authenticated commenter only
-  - *delete*: authenticated commenter or parent record owner
+  - *delete*: authenticated commenter only
 
 + Attributes
-    + commenter (string, required) - the id of the user who created the comment
+    + id (string, required) - the id of the comment (MUST match the key of this record)
+    + parent (string, required) - the id of the parent record (Should match the key of an OBSERVATION or IDEA record)
+    + commenter (string, required) - the id of the user who created the comment (MUST match the authenticated user's UID)
     + comment (string, required) - the user submitted comment text
 
+#### List Comments [GET /comments.json{?orderBy}{?limitToFirst}]
+
+Returns an object containing all comments available in the database. The response will have a
+key-value pair for each comment where the key is the comment's `id` and the value is the record for
+that comment.
+
+> NOTE: The full set of comment data is potentially huge. You should never make a raw request against this
+> endpoint without some form or query and/or response limit. Data export is available for offline research.
+
++ Parameters
+    + orderBy: `"$key"` (string, optional) - what key to order the results by
+    + limitToFirst: `4` (number, optional) - limit the number of responses
+
++ Response 200 (application/json)
+
+        {
+          "-KAc5PhyQsLi_vd6OllJ" : {
+            "id" : "-KAc5PhyQsLi_vd6OllJ",
+            "parent" : "-KAc5Cx1M6_kGnoOHriy",
+            "comment" : "Fihov zava do ed wocka lej wuw jikoc ace goj kifkevak ildif vealeaca cafpu odna ve.",
+            "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
+            "created_at" : 1455592892205,
+            "updated_at" : 1455592892205
+          },
+          "-KAc5S9-pjitmmQraJUu" : {
+            "id" : "-KAc5S9-pjitmmQraJUu",
+            "parent" : "-KAc5Cx1M6_kGnoOHriy",
+            "comment" : "Hag aro bud rol go piduzum masu ocrujiho dausnet bi camme warupap nuvpum.",
+            "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
+            "created_at" : 1455592892205,
+            "updated_at" : 1455592892205
+          },
+          "-KAc5SRJKPwtFvHo_E52" : {
+            "id" : "-KAc5SRJKPwtFvHo_E52",
+            "parent" : "-KAc5Cx1M6_kGnoOHriy",
+            "comment" : "Rarsag medirub soez gi vu zogek rit ripmure do kefero so no id jo bu.",
+            "commenter" : "13e2d376-249d-43b5-8b33-74ee689279b8",
+            "created_at" : 1455592892205,
+            "updated_at" : 1455592892205
+          }
+        }
+        
+#### Read Comment [GET /comments/{id}.json]
+
+Returns a single comment record from the database
+
++ Parameters
+    + id: `-KAc5PhyQsLi_vd6OllJ` (required) - the id of the comment to read.
+
++ Response 200 (application/json)
+
+        {
+            "id" : "-KAc5PhyQsLi_vd6OllJ",
+            "parent" : "-KAc5Cx1M6_kGnoOHriy",
+            "comment" : "Fihov zava do ed wocka lej wuw jikoc ace goj kifkevak ildif vealeaca cafpu odna ve.",
+            "commenter" : "84f4926d-efd6-4f21-b521-3ccebc36f3d1",
+            "created_at" : 1455592892205,
+            "updated_at" : 1455592892205
+          }
+        
 #### Create Comment [POST /{commentable}/{id}/comments.json]
 
 Comment on an existing idea or observation. Comment records require their firebase
 key to be stored as part of the record, requests that do not contain the id will be rejected. 
+Comments should be created with a multi-location update to also attach the comment's id to the parent record.
 It is recommended to use a native client to achieve this:
 
 ```
-var comments = new Firebase('https://naturenet-staging.firebaseio.com/ideas/-KAc5NRKaLMl0XaMnYhr/comments');
-var record = comments.push();
-record.set({
+var ref = new Firebase('https://naturenet-staging.firebaseio.com');
+var id = ref.child('comments').push().key();
+
+var newComment = {
     // other attributes
-})
+};
+
+var newData = {};
+newData['comments/' + id] = newComment;
+newData[context + '/' + parentId + '/comments/' + id] = true;
+
+ref.update(newData);
 ```
 
 Alternatively the heroku worker provides an endpoint that will handle this on the clients
@@ -1254,14 +1334,12 @@ result as firebase would.
 
 + Response 201 (application/json)
 
-#### Update Comment [PATCH /{commentable}/{parentId}/comments/{commentId}.json]
+#### Update Comment [PATCH /comments/{commentId}.json]
 
 Comments can be updated with either `PATCH` or `PUT` as described in the Update actions
 for other records. Comments only contain one updateable attribute which is `comment` (in addition to timestamps).
 
 + Parameters
-    + commentable: `ideas` (required) - the type of record being comment on, must be one of [ideas, observations]
-    + parentId: `-KAc5NRKaLMl0XaMnYhr` (required) - the id of the record to be commented on
     + commentId: `-KAc5PTIP2RBeL9pBNaY` (required) the id of the comment to be updated.
 
 + Request
@@ -1269,6 +1347,8 @@ for other records. Comments only contain one updateable attribute which is `comm
     + Body
             
             {
+                "id": "-KAc5PTIP2RBeL9pBNaY",
+                "parent": "KAc5Cx1M6_kGnoOHriy",
                 "comment": "Actually that was a good idea",
                 "modified_at": {".sv": "timestamp" }
             }
@@ -1276,18 +1356,18 @@ for other records. Comments only contain one updateable attribute which is `comm
 + Response 200 (application/json)
 
         {
+            "id": "-KAc5PTIP2RBeL9pBNaY",
+            "parent": "KAc5Cx1M6_kGnoOHriy",
             "comment": "Actually that was a good idea",
             "modified_at": 1455592933283
         }
 
 
-#### Delete Comment [DELETE /{commentable}/{parentId}/comments/{commentId}.json]
+#### Delete Comment [DELETE /comments/{commentId}.json]
 
 Deletes a comment from the parent record.
 
 + Parameters
-    + commentable: `ideas` (required) - the type of record being comment on, must be one of [ideas, observations]
-    + parentId: `-KAc5NRKaLMl0XaMnYhr` (required) - the id of the record to be commented on
     + commentId: `-KAc5PTIP2RBeL9pBNaY` (required) the id of the comment to be updated.
     
 + Response 200 (application/json)
