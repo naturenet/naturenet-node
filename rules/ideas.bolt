@@ -6,6 +6,7 @@ type Idea extends Timestamped {
     status: String
     submitter: String
     likes: Object | Null
+    comments: Object | Null
 
     validate() {
         this.id == idea_id
@@ -14,9 +15,21 @@ type Idea extends Timestamped {
 
 path /ideas {
     read() { true }
+    index() {[ ".key", "status", "group", "submitter", "updated_at" ]}
+}
+
+path /ideas-deleted {
+    read() { false }
 }
 
 path /ideas/{idea_id} is Idea {
     write() { isOwner(this.submitter) }
-    index() {[ ".key", "status", "group", "submitter", "updated_at" ]}
+}
+
+path /ideas/{idea_id}/comments {
+    write() { isUser() }
+}
+
+path /ideas/{idea_id}/likes {
+    write() { isUser() }
 }

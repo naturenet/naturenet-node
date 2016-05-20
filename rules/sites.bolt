@@ -5,4 +5,5 @@
 path /sites {
     read() { true }
     write() { false }
+    index() {[ ".key", "g", "updated_at" ]}
 }

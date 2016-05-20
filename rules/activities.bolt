@@ -18,6 +18,9 @@ path /geo/activities {
 }
 
 // Exception: users can write to latest_contribution to keep sorting by contribution in sync
+path /activities/{id}/latest_contribution is Number {
+    write() { isUser() }
+}
 path /geo/activities/{id}/latest_contribution is Number {
     write() { isUser() }
 }

@@ -7,6 +7,7 @@ type Observation extends Timestamped {
     observer: String
     status: String | Null
     likes: Object | Null
+    comments: Object | Null
 
     validate() {
         this.id == obs_id
@@ -15,9 +16,21 @@ type Observation extends Timestamped {
 
 path /observations {
     read() { true }
+    index() {[ ".key", "g", "activity_location", "observer", "updated_at" ]}
+}
+
+path /observations-deleted {
+    read() { false }
 }
 
 path /observations/{obs_id} is Observation {
     write() { isOwner(this.observer) }
-    index() {[ ".key", "g", "activity_location", "observer", "updated_at" ]}
+}
+
+path /observations/{obs_id}/comments {
+    write() { isUser() }
+}
+
+path /observations/{obs_id}/likes {
+    write() { isUser() }
 }

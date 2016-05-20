@@ -2,7 +2,7 @@ type PublicUserData extends Timestamped {
     id: String
     avatar: String | Null
     display_name: String
-    affiliation: String | Null
+    affiliation: String
 	bio: String | Null
 
     validate() {
@@ -12,6 +12,7 @@ type PublicUserData extends Timestamped {
 
 type PrivateUserData extends Timestamped {
     id: String
+    name: String
     consent: Object
 
     validate() {
@@ -21,11 +22,11 @@ type PrivateUserData extends Timestamped {
 
 path /users {
     read() { true }
+    index() {[ ".key", "affiliation", "created_at", "updated_at", "latest_contribution" ]}
 }
 
 path /users/{user_id} is PublicUserData {
     write() { isOwner(user_id) }
-    index() {[ ".key", "affiliation", "created_at" ]}
 }
 
 path /users-private {
