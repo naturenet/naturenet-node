@@ -557,6 +557,7 @@ Returns all locations where a specific activity is located or lists activity loc
 |   * l                  |
 |   * g                  |
 |   * data               |
+|   * status             |
 |   * [likes]            |
 |     * user            +-----> USER::id
 |   * [comments]         |
@@ -596,6 +597,7 @@ as to what structure this data will have.
     + l (object, required) - the lat/long coordinate where the observation took place
     + g (string, required) - the geohash where the observation took place
     + data (object, required) - freeform data submitted as part of the observation
+    + status (string, optional) - indicates if the observation has been deleted (Should be absent or "deleted")
     + likes (object, optional) - likes by other users on the observation, by user id, may be null/not present if there are no likes
     + comments (object, optional) - comments by other users on the observation, by comment id, may be null/not present if there are no comments
     
@@ -1228,6 +1230,19 @@ Users may belong to one or more Groups, which contain one or more users. A group
 Both `Idea` and `Observation` support comments. Any user may comment on any other users idea or observation.
 Comments are stored in a separate table.
 
+```
++------------------------+
+|                        |
+|   COMMENT              |
+|   * id                 |
+|   * parent            +-------> OBSERVATION::id || IDEA::id
+|   * commenter         +-------> USER::id
+|   * comment            |
+|   * status             |
+|                        |
++------------------------+  
+```
+
 **Access**:
 - *read*: public, unauthenticated
 - *write*:
@@ -1240,6 +1255,7 @@ Comments are stored in a separate table.
     + parent (string, required) - the id of the parent record (Should match the key of an OBSERVATION or IDEA record)
     + commenter (string, required) - the id of the user who created the comment (MUST match the authenticated user's UID)
     + comment (string, required) - the user submitted comment text
+    + status (string, optional) - indicates if the comment has been deleted (Should be absent or "deleted")
 
 #### List Comments [GET /comments.json{?orderBy}{?limitToFirst}]
 
