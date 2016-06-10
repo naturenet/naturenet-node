@@ -4,6 +4,7 @@ type PublicUserData extends Timestamped {
     display_name: String
     affiliation: String
 	  bio: String | Null
+    latest_contribution: Number | Null
 
     validate() {
         this.id == user_id
