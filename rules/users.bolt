@@ -3,7 +3,7 @@ type PublicUserData extends Timestamped {
     avatar: String | Null
     display_name: String
     affiliation: String
-	bio: String | Null
+	  bio: String | Null
 
     validate() {
         this.id == user_id
@@ -13,7 +13,7 @@ type PublicUserData extends Timestamped {
 type PrivateUserData extends Timestamped {
     id: String
     name: String
-    consent: Object
+    consent: Object | Null
 
     validate() {
         this.id == user_id

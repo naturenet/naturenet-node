@@ -2,6 +2,7 @@ type Idea extends Timestamped {
     id: String
     content: String
     group: String
+    type: String | Null
     icon_url: String | Null
     status: String
     submitter: String
