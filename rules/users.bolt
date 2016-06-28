@@ -5,6 +5,7 @@ type PublicUserData extends Timestamped {
     affiliation: String
 	  bio: String | Null
     latest_contribution: Number | Null
+    groups: Object | Null
 
     validate() {
         this.id == user_id
@@ -15,6 +16,7 @@ type PrivateUserData extends Timestamped {
     id: String
     name: String
     consent: Object | Null
+    demographics: Object | Null
 
     validate() {
         this.id == user_id

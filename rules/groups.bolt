@@ -1,4 +1,22 @@
+type Group {
+  id: String
+  name: String
+  affiliation: String
+  members: Object | Null
+
+  validate() {
+    this.id == group_id
+  }
+}
+
 path /groups {
     read() { true }
-    write() { isUser() }
+}
+
+path /group/{group_id} is Group {
+    write() { false }
+}
+
+path /group/{group_id}/members/{user_id} is Boolean {
+  write() { isOwner(user_id) }
 }
