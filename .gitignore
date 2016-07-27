@@ -56,3 +56,6 @@ rules.json
 
 #********** Migration files**********
 postgres-migrate/data
+
+#********** Private files**********
+NatureNet*.json

@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "prod": "firebase-naturenet",
+    "staging": "naturenet-staging",
+    "testing": "naturenet-testing"
+  }
+}

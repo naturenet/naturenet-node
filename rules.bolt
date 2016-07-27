@@ -1,0 +1,234 @@
+// SHARED FUNCTIONS
+
+// Checks if the current operation is being performed by a specific user.
+// Used to check for ownership in cases where a record knows the id of the user
+// who created it.
+function isOwner(user_id) {
+    auth != null && auth.uid == user_id;
+}
+
+// Checks if the current operation is being performed by any authenticated user.
+function isUser() {
+    auth != null && auth.uid != null;
+}
+
+type Timestamped {
+    created_at: Number
+    updated_at: Number
+}
+
+// ACTIVITIES
+
+// Activities cannot be written to without admin privileges but are publicly readable.
+//
+// NOTE: Activities do not have any validation rules since admin writes will bypass
+//       validation.
+path /activities {
+    read() { true }
+    write() { false }
+    index() {[ ".key", "status" ]}
+}
+
+// Activity locations cannot be written to without admin privileges but are publicly readable.
+//
+// NOTE: Likewise no validations.
+path /geo/activities {
+    read() { true }
+    write() { false }
+    index() {[ "activity", "site", "g" ]}
+}
+
+// Exception: users can write to latest_contribution to keep sorting by contribution in sync
+path /activities/{id}/latest_contribution is Number {
+    write() { isUser() }
+}
+path /geo/activities/{id}/latest_contribution is Number {
+    write() { isUser() }
+}
+
+// COMMENTS
+
+type Comment extends Timestamped {
+    id: String
+    parent: String
+    context: String
+    commenter: String
+    comment: String
+    status: String | Null
+
+    validate() {
+        this.id == c_id
+    }
+}
+
+path /comments {
+    read() { true }
+    index() {[ ".key", "parent", "commenter", "updated_at" ]}
+}
+
+path /comments/{c_id} is Comment {
+    write() { isOwner(this.commenter) }
+}
+
+// GROUPS
+
+type Group {
+  id: String
+  name: String
+  affiliation: String
+  members: Object | Null
+
+  validate() {
+    this.id == group_id
+  }
+}
+
+path /groups {
+    read() { true }
+}
+
+path /group/{group_id} is Group {
+    write() { false }
+}
+
+path /group/{group_id}/members/{user_id} is Boolean {
+  write() { isOwner(user_id) }
+}
+
+// IDEAS
+
+type Idea extends Timestamped {
+    id: String
+    content: String
+    group: String
+    type: String | Null
+    icon_url: String | Null
+    status: String
+    submitter: String
+    likes: Object | Null
+    comments: Object | Null
+
+    validate() {
+        this.id == idea_id
+    }
+}
+
+path /ideas {
+    read() { true }
+    index() {[ ".key", "status", "group", "submitter", "updated_at" ]}
+}
+
+path /ideas-deleted {
+    read() { false }
+}
+
+path /ideas/{idea_id} is Idea {
+    write() { isOwner(this.submitter) }
+}
+
+path /ideas/{idea_id}/comments {
+    write() { isUser() }
+}
+
+path /ideas/{idea_id}/likes {
+    write() { isUser() }
+}
+
+// OBSERVATIONS
+
+type Observation extends Timestamped {
+    id: String
+    activity: String | Null // require when ready
+    activity_location: String | Null // remove when ready
+    data: Object
+    g: String | Null  // require when ready
+    l: Object | Null  // require when ready
+    observer: String
+    status: String | Null
+    site: String | Null // require when ready
+    likes: Object | Null
+    comments: Object | Null
+
+    validate() {
+        this.id == obs_id
+    }
+}
+
+path /observations {
+    read() { true }
+    index() {[ ".key", "g", "activity", "site", "observer", "updated_at" ]}
+}
+
+path /observations-deleted {
+    read() { false }
+}
+
+path /observations/{obs_id} is Observation {
+    write() { isOwner(this.observer) }
+}
+
+path /observations/{obs_id}/comments {
+    write() { isUser() }
+}
+
+path /observations/{obs_id}/likes {
+    write() { isUser() }
+}
+
+// SITES
+
+// Sites cannot be written to without admin privileges but are publicly readable.
+//
+// NOTE: Sites do not have any validation rules since admin writes will bypass
+//       validation.
+path /sites {
+    read() { true }
+    write() { false }
+    index() {[ ".key", "g", "updated_at" ]}
+}
+
+// USERS
+
+type PublicUserData extends Timestamped {
+    id: String
+    avatar: String | Null
+    display_name: String
+    affiliation: String
+	  bio: String | Null
+    latest_contribution: Number | Null
+    groups: Object | Null
+
+    validate() {
+        this.id == user_id
+    }
+}
+
+type PrivateUserData extends Timestamped {
+    id: String
+    name: String
+    consent: Object | Null
+    demographics: Object | Null
+
+    validate() {
+        this.id == user_id
+    }
+}
+
+path /users {
+    read() { true }
+    index() {[ ".key", "affiliation", "created_at", "updated_at", "latest_contribution" ]}
+}
+
+path /users/{user_id} is PublicUserData {
+    write() { isOwner(user_id) }
+}
+
+path /users-private {
+    read() { false }
+    write() { false }
+}
+
+path /users-private/{user_id} is PrivateUserData {
+    read() { isOwner(user_id) }
+    write() { isOwner(user_id) }
+}

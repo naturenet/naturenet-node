@@ -1,9 +1,0 @@
-// Sites cannot be written to without admin privileges but are publicly readable.
-//
-// NOTE: Sites do not have any validation rules since admin writes will bypass
-//       validation.
-path /sites {
-    read() { true }
-    write() { false }
-    index() {[ ".key", "g", "updated_at" ]}
-}
