@@ -12,45 +12,59 @@ var observations = db.ref('observations');
 var geo = db.ref('geo/activities');
 
 console.log("Modifying Firebase data");
+observations.once('value', function(obsSnapshot){
+    obsSnapshot.forEach(function(obs) {
 
-geo.once('value', function (geoSnapshot) {
-    observations.once('value', function(obsSnapshot){
-        obsSnapshot.forEach(function(obs) {
+        console.log('repairing ' + obs.key);
 
-            console.log('repairing ' + obs.key);
+        if( obs.hasChild('data') && obs.child('data').hasChild('image') ) {
+            var image = obs.child('data').child('image');
+            image.ref.set(image.val().replace('http:', 'https:'));
+        } else {
+            console.log(obs.key + ' has no image');
+        }
 
-            if( obs.hasChild('activity_location') && geoSnapshot.hasChild(obs.child('activity_location').val()) ) {
-                var geoActivity = geoSnapshot.child(obs.child('activity_location').val());
-
-                if (!obs.hasChild('site')) {
-                    var siteId = geoActivity.child('site').val();
-                    obs.ref.child('site').set(siteId);
-                    console.log('site is ' + siteId);
-                }
-
-                if (!obs.hasChild('activity')) {
-                    var activityId = geoActivity.child('activity').val();
-                    obs.ref.child('activity').set(activityId);
-                    console.log('activity is ' + activityId);
-                }
-            } else {
-                console.log(obs.key + ' invalid activity location! ' + obs.child('activity_location').val());
-            }
-
-            if (obs.hasChild('l') && obs.child('l').val().constructor === Array) {
-                if (!obs.hasChild('g')) {
-                    var geoFire = new GeoFire(db.ref('geo'));
-                    var l = obs.child('l').val();
-                    geoFire.set(obs.ref.key, l).then(ok => console.log('generated g for location ' + l));
-                }
-            } else {
-                console.log(obs.key + ' invalid or missing location! ' + obs.child('l').val());
-            }
-
-            return false;
-        });
+        return false;
     });
 })
+// geo.once('value', function (geoSnapshot) {
+//     observations.once('value', function(obsSnapshot){
+//         obsSnapshot.forEach(function(obs) {
+
+//             console.log('repairing ' + obs.key);
+
+//             if( obs.hasChild('activity_location') && geoSnapshot.hasChild(obs.child('activity_location').val()) ) {
+//                 var geoActivity = geoSnapshot.child(obs.child('activity_location').val());
+
+//                 if (!obs.hasChild('site')) {
+//                     var siteId = geoActivity.child('site').val();
+//                     obs.ref.child('site').set(siteId);
+//                     console.log('site is ' + siteId);
+//                 }
+
+//                 if (!obs.hasChild('activity')) {
+//                     var activityId = geoActivity.child('activity').val();
+//                     obs.ref.child('activity').set(activityId);
+//                     console.log('activity is ' + activityId);
+//                 }
+//             } else {
+//                 console.log(obs.key + ' invalid activity location! ' + obs.child('activity_location').val());
+//             }
+
+//             if (obs.hasChild('l') && obs.child('l').val().constructor === Array) {
+//                 if (!obs.hasChild('g')) {
+//                     var geoFire = new GeoFire(db.ref('geo'));
+//                     var l = obs.child('l').val();
+//                     geoFire.set(obs.ref.key, l).then(ok => console.log('generated g for location ' + l));
+//                 }
+//             } else {
+//                 console.log(obs.key + ' invalid or missing location! ' + obs.child('l').val());
+//             }
+
+//             return false;
+//         });
+//     });
+// })
 .then(ok => {
     console.log("Completed");
 })
