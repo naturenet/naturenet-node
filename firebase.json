@@ -1,10 +1,5 @@
 {
-  "public": "web",
-  "rules": "rules.bolt",
-  "ignore": [
-    "firebase.json",
-    "**/.*",
-    "**/node_modules/**",
-    "NatureNet*.json"
-  ]
+  "database": {
+    "rules": "rules.bolt"
+  }
 }
