@@ -3,7 +3,7 @@ var firebase = require('firebase');
 var GeoFire = require('geofire');
 
 var app = firebase.initializeApp({
-    serviceAccount: "NatureNet Production-ec0b64eca74d.json",
+    serviceAccount: "NatureNet Production-7bfaf963189a.json",
     databaseURL: "https://naturenet.firebaseio.com"
 });
 var db = firebase.database();
@@ -13,6 +13,8 @@ var geo = db.ref('geo');
 var comments = db.ref('comments');
 var ideas = db.ref('ideas');
 var geoFire = new GeoFire(geo);
+var sites = db.ref('sites');
+var users = db.ref('users');
 
 console.log("Modifying Firebase data");
 // Convert hosted image URLs to HTTPS
@@ -57,6 +59,29 @@ observations.once('value', function(obsSnapshot){
             });
         });
     });
+}).then(ok => {
+// Move observations at [0,0] to the user's affiliated site
+  sites.once('value', function(siteSnapshot){
+    users.once('value', function(usersSnapshot){
+        observations.once('value', function(obsSnapshot){
+            obsSnapshot.forEach(function(obs) {
+                if (!obs.hasChild('l') || obs.child('l').val().indexOf(0) > -1) {
+                    var userId = obs.child('observer').val();
+                    var site = usersSnapshot.child(userId).child('affiliation').val();
+                    if (siteSnapshot.hasChild(site)) {
+                        var l = siteSnapshot.child(site).child('l').val();
+                        observations.child(obs.key).child('l').set(l);
+                        console.log('moved observation ' + obs.key + ' to site ' + site);
+                    } else {
+                        console.log('could not move observation ' + obs.key + ' to site ' + site);
+                    }
+                }
+
+                return false;
+            });
+        });
+    });
+  });
 }).then(ok => {
 // Generate Geohash for all observations
   observations.once('value', function(obsSnapshot){
