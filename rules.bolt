@@ -1,9 +1,7 @@
 // SHARED FUNCTIONS
 
-// Checks if the current operation is being performed by a specific user.
-// Used to check for ownership in cases where a record knows the id of the user
-// who created it.
-function isOwner(user_id) {
+// Checks that the user is attributing data to themselves. Users should only ever be writing their own UID.
+function isSelf(user_id) {
     auth != null && auth.uid == user_id;
 }
 
@@ -29,21 +27,9 @@ path /activities {
     index() {[ ".key", "status" ]}
 }
 
-// Activity locations cannot be written to without admin privileges but are publicly readable.
-//
-// NOTE: Likewise no validations.
-path /geo/activities {
-    read() { true }
-    write() { false }
-    index() {[ "activity", "site", "g" ]}
-}
-
-// Exception: users can write to latest_contribution to keep sorting by contribution in sync
+// Exception: users can overwrite latest_contribution on existing activities to keep sorting by contribution in sync
 path /activities/{id}/latest_contribution is Number {
-    write() { isUser() }
-}
-path /geo/activities/{id}/latest_contribution is Number {
-    write() { isUser() }
+    write() { isUser() && prior(this) != null }
 }
 
 // COMMENTS
@@ -55,9 +41,10 @@ type Comment extends Timestamped {
     commenter: String
     comment: String
     status: String | Null
+    source: String | Null // require when ready
 
     validate() {
-        this.id == c_id
+        this.id == c_id && root[this.context] != null //&& root[this.context][this.parent] != null
     }
 }
 
@@ -66,8 +53,9 @@ path /comments {
     index() {[ ".key", "parent", "commenter", "updated_at" ]}
 }
 
+// Allow writes if the commenter is the current user and the parent record already exists
 path /comments/{c_id} is Comment {
-    write() { isOwner(this.commenter) }
+    write() { isSelf(this.commenter) }
 }
 
 // GROUPS
@@ -76,6 +64,7 @@ type Group {
   id: String
   name: String
   affiliation: String
+  owner: String | Null
   members: Object | Null
 
   validate() {
@@ -92,7 +81,7 @@ path /groups/{group_id} is Group {
 }
 
 path /groups/{group_id}/members/{user_id} is Boolean {
-  write() { isOwner(user_id) }
+  write() { isSelf(user_id) }
 }
 
 // IDEAS
@@ -107,6 +96,7 @@ type Idea extends Timestamped {
     submitter: String
     likes: Object | Null
     comments: Object | Null
+    source: String | Null // require when ready
 
     validate() {
         this.id == idea_id
@@ -123,34 +113,36 @@ path /ideas-deleted {
 }
 
 path /ideas/{idea_id} is Idea {
-    write() { isOwner(this.submitter) }
+    write() { isSelf(this.submitter) }
 }
 
-path /ideas/{idea_id}/comments {
-    write() { isUser() }
+// Allow writes to comments if the comment already exists and belongs to the current user
+path /ideas/{idea_id}/comments/{c_id} is Boolean {
+    write() { root.comments[c_id] != null && isSelf(root.comments[c_id].commenter) }
 }
 
-path /ideas/{idea_id}/likes {
-    write() { isUser() }
+// Allow user to append their own like
+path /ideas/{idea_id}/likes/{user_id} is Boolean {
+    write() { isSelf(user_id) }
 }
 
 // OBSERVATIONS
 
 type Observation extends Timestamped {
     id: String
-    activity: String | Null // require when ready
-    activity_location: String | Null // remove when ready
+    activity: String
     data: Object
     g: String | Null  // require when ready
     l: Object | Null  // require when ready
     observer: String
     status: String | Null
-    site: String | Null // require when ready
+    site: String
     likes: Object | Null
     comments: Object | Null
+    source: String | Null // require when ready
 
     validate() {
-        this.id == obs_id
+        this.id == obs_id && root.activities[this.activity] != null && root.sites[this.site] != null
     }
 }
 
@@ -164,15 +156,17 @@ path /observations-deleted {
 }
 
 path /observations/{obs_id} is Observation {
-    write() { isOwner(this.observer) }
+    write() { isSelf(this.observer) } //&& root.activities[this.activity].sites[root.users[this.observer].affiliation] == true }
 }
 
-path /observations/{obs_id}/comments {
-    write() { isUser() }
+// Allow writes to comments if the comment already exists and belongs to the current user
+path /observations/{obs_id}/comments/{c_id} is Boolean {
+    write() { root.comments[c_id] != null && isSelf(root.comments[c_id].commenter) }
 }
 
-path /observations/{obs_id}/likes {
-    write() { isUser() }
+// Allow user to append their own like
+path /observations/{obs_id}/likes/{user_id} is Boolean {
+    write() { isSelf(user_id) }
 }
 
 // SITES
@@ -184,7 +178,7 @@ path /observations/{obs_id}/likes {
 path /sites {
     read() { true }
     write() { false }
-    index() {[ ".key", "g", "updated_at" ]}
+    index() {[ ".key", "g" ]}
 }
 
 // USERS
@@ -199,7 +193,7 @@ type PublicUserData extends Timestamped {
     groups: Object | Null
 
     validate() {
-        this.id == user_id
+        this.id == user_id && root.sites[this.affiliation] != null
     }
 }
 
@@ -220,7 +214,11 @@ path /users {
 }
 
 path /users/{user_id} is PublicUserData {
-    write() { isOwner(user_id) }
+    write() { isSelf(user_id) }
+}
+
+path /users/{user_id}/groups/{group_id} is Boolean {
+    validate() { root.groups[group_id] != null }
 }
 
 path /users-private {
@@ -229,6 +227,11 @@ path /users-private {
 }
 
 path /users-private/{user_id} is PrivateUserData {
-    read() { isOwner(user_id) }
-    write() { isOwner(user_id) }
+    read() { isSelf(user_id) }
+    write() { isSelf(user_id) }
+}
+
+path /users-ranks {
+    read() { true }
+    write() { false }
 }
