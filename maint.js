@@ -13,6 +13,7 @@ var geo = db.ref('geo');
 var comments = db.ref('comments');
 var ideas = db.ref('ideas');
 var geoFire = new GeoFire(geo);
+var users = db.ref('users');
 
 console.log("Modifying Firebase data");
 // Convert hosted image URLs to HTTPS
@@ -28,6 +29,16 @@ observations.once('value', function(obsSnapshot){
         return false;
     });
 }).then(ok => {
+// Assign users with no association to 'elsewere'
+  users.once('value', function (usersSnapshot) {
+    usersSnapshot.forEach( function (user) {
+      if (!user.child('affiliation').val()) {
+        user.ref.child('affiliation').set('zz_elsewhere');
+        console.log(user.ref.key + ' assigned to Elsewhere');
+      }
+    });
+  })
+}).then(ok => {
 // Associate comments and their parents with each other
     comments.once('value', function (commentsSnapshot) {
         observations.once('value', function(obsSnapshot){
@@ -38,7 +49,7 @@ observations.once('value', function(obsSnapshot){
                 if (obsSnapshot.hasChild(obsId) && !(comment.hasChild('status') && comment.child('status').val().toLower() === 'deleted')) {
                     if (!(obsSnapshot.child(obsId).hasChild('comments') && obsSnapshot.child(obsId).child('comments').hasChild(commentId) && obsSnapshot.child(obsId).child('comments').child(commentId).val() === true)) {
                         observations.child(obsId).child('comments').child(commentId).set(true);
-                        console.log(obsId + 'repaired comment reference' + commentId);
+                        console.log(obsId + ' repaired comment reference' + commentId);
                     }
                 }
             });
@@ -79,6 +90,7 @@ observations.once('value', function(obsSnapshot){
 
         if( obs.hasChild('activity_location') && geoSnapshot.child('activities').hasChild(obs.child('activity_location').val()) ) {
           var geoActivity = geoSnapshot.child('activities').child(obs.child('activity_location').val());
+          obs.ref.child('activity_location').set(null);
 
           if (!obs.hasChild('site')) {
             var siteId = geoActivity.child('site').val();
@@ -92,7 +104,7 @@ observations.once('value', function(obsSnapshot){
             console.log(obs.key + 'activity set to ' + activityId);
           }
         } else {
-          console.log(obs.key + ' invalid activity location! ' + obs.child('activity_location').val());
+          //console.log(obs.key + ' invalid activity location! ' + obs.child('activity_location').val());
         }
 
         return false;
