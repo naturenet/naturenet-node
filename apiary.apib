@@ -58,64 +58,53 @@ sample requests here do not always show or make use of the full range of paramet
 ## Data Model
 
 ```
-        +------------------------+               +-------------------------+
-        |                        |               |                         |
-        |   IDEA                 |               |   ACTIVITY              |
-+-------->  * id                 |               |   * id              <-------+
-|       |   * group              |               |   * name                |   |
-|       |   * content            |               |   * description         |   |
-|       |   * icon_url           |               |   * icon_url            |   |
-|       |   * status             |               |   * status              |   |
-|       |   * submitter     +------------+       |   * latest_contribution |   |
-|       |   * [likes]            |       |       |                         |   |
-|       |     * user        +------------+       +-------------------------+   |
-|       |   * [comments]         |       |                                     |
-|   +----+    * id               |       |       +-------------------------+   |
-|   |   |                        |       |       |                         |   |
-|   |   +------------------------+       |       |   ACTIVITY_LOCATION     |   |
-|   |                                +------------>  * id                  |   |
-|   |   +------------------------+   |   |       |   * activity        +-------+
-|   |   |                        |   |   |   +----+  * site                |
-|   |   |   OBSERVATION          |   |   |   |   |   * l                   |
-+-------->  * id                 |   |   |   |   |   * g                   |
-|   |   |   * activity_location +----+   |   |   |   * latest_contribution |
-|   |   |   * observer          +--------+   |   |                         |
-|   |   |   * l                  |       |   |   +-------------------------+
-|   |   |   * g                  |       |   |
-|   |   |   * data               |       |   |   +-------------------------+
-|   |   |   * [likes]            |       |   |   |                         |
-|   |   |     * user            +--------+   |   |   USER                  |
-|   |   |   * [comments]         |       +-------->  * id              <-------+
-|   +----+    * id               |       |   |   |   * display_name        |   |
-|   |   |                        |       |   |   |   * avatar              |   |
-|   |   +------------------------+       |   |   |   * bio                 |   |
-|   |                                    |   +----+  * affiliation         |   |
-|   |   +------------------------+       |   |   |   * latest_contribution |   |
-|   |   |                        |       |   |   |                         |   |
-|   |   |   COMMENT              |       |   |   +-------------------------+   |
-|   +---->  * id                 |       |   |                                 |
-+--------+  * parent             |       |   |   +-------------------------+   |
-        |   * commenter     +------------+   |   |                         |   |
-        |   * comment            |           |   |   USER_PRIVATE          |   |
-        |                        |           |   |   * id              +-------+
-        +------------------------+           |   |   * consent             |   |
-                                             |   |   * name                |   |
-        +------------------------+           |   |                         |   |
-        |                        |           |   +-------------------------+   |
-        |   SITE                 |           |                                 |
-        |   * id            <----------------+   +-------------------------+   |
-        |   * name               |           |   |                         |   |
-        |   * description        |           |   |   USER_GROUP            |   |
-        |   * l                  |           |   |   * id                  |   |
-        |   * g                  |           |   |   * name                |   |
-        |                        |           |   |   * avatar              |   |
-        +------------------------+           |   |   * description         |   |
-                                             +----+  * affiliation         |   |
-                                                 |   * owner           +-------+
-                                                 |   * [members]           |   |
-                                                 |     * member        +-------+
-                                                 |                         |
-                                                 +-------------------------+
+                             +--------------------+
++-------------------+        |                    |
+|                   |        |   OBSERVATION      |
+|   ACTIVITY        |        |   * id           <-------+
+|   * id          <------------+ * activity       |     |
+|   * [sites]       |  +--------+* site           |     |
+|     * site      +----+  +----+ * observer       |     |
+|                   |  |  |  |   * [likes]        |     |
++-------------------+  |  +----+   * user         |     |
+                       |  |  |   * [comments]     |     |
++-------------------+  |  |  |     * id         +----+  |
+|                   |  |  |  |                    |  |  |
+|   SITE            |  |  |  +--------------------+  |  |
+|   * id          <----+  |                          |  |
+|                   |  |  |  +--------------------+  |  |
++-------------------+  |  |  |                    |  |  |
+                       |  |  |   IDEA             |  |  |
+                       |  |  |   * id           <-------+
+                       |  +----+ * submitter      |  |  |
+                       |  |  |   * [likes]        |  |  |
+                       |  +----+   * user         |  |  |
+                       |  |  |   * [comments]     |  |  |
+                       |  |  |     * id         +----+  |
++-------------------+  |  |  |                    |  |  |
+|                   |  |  |  +--------------------+  |  |
+|   USER            |  |  |                          |  |
+|   * id          <-------+  +--------------------+  |  |
+|   * affiliation +----+  |  |                    |  |  |
+|                   |  |  |  |   USER_GROUP       |  |  |
+|                   |  |  |  |   * id             |  |  |
+|                   |  +-------+ * affiliation    |  |  |
++-------------------+     +----+ * owner          |  |  |
+                          |  |   * [members]      |  |  |
++-------------------+     +----+   * member       |  |  |
+|                   |     |  |                    |  |  |
+|   USER_PRIVATE    |     |  +--------------------+  |  |
+|   * id          +-------+                          |  |
+|                   |     |  +--------------------+  |  |
++-------------------+     |  |                    |  |  |
+                          |  |   COMMENT          |  |  |
+                          |  |   * id           <----+  |
+                          |  |   * parent       +-------+
+                          |  |   * context        |
+                          +----+ * commenter      |
+                             |                    |
+                             +--------------------+
+
 ```
 
 ### Location Data
@@ -458,96 +447,6 @@ Returns a single activity record from the database.
             "updated_at" : 1455592819273
         }
 
-### Activity Locations [/geo/activities]
-
-```
-+-------------------------+
-|                         |
-|   ACTIVITY_LOCATION     |
-|   * id          <-------------- OBSERVATION::activity_location
-|   * activity    +-------------> ACTIVITTY::id
-|   * site        +-------------> SITE::id
-|   * l                   |
-|   * g                   |
-|   * latest_contribution |
-|                         |
-+-------------------------+
-```
-
-The activity location collection links activity records to one or more locations in one or more sites.
-Each entry in this collection represents one location where an activity is present.
-
-Activity locations cannot be created via any of the apps, however an authenticated user can update
-the `latest_contribution` field.
-
-**Access**:
-- *read*: public, unauthenticated
-- *write*: forbidden
-
-***latest_contribution***:
-- *write*: authenticated user
-
-+ Attributes
-    + id (string, required) - unique autogenerated-id for the activity location
-    + activity (string, required) - the id of the activity being located
-    + site (string, required) - the id of the site associated with this location
-    + l (object, required) - the lat/long coordinate where the activity can be performed
-    + g (string, required) - the geohash where the activity can be performed
-    + latest_contribution (number, optional) - the timestamp of the most recent observation associated with this activity location
-    
-#### List Activity Locations [GET /geo/activities.json]
-
-Returns an object containing all activity locations available in the database. The response will have a
-key-value pair for each activitiy location where the key is the location's `id` and the value is the record for
-that activity.
-
-+ Response 200 (application/json)
-
-        {
-              "-KAc4wQe6I_-pLm8beEF": {
-                "activity": "-KAc4wOQI_5_Jgm4pJyn",
-                "id": "-KAc4wQe6I_-pLm8beEF",
-                "g": "9wup2ctzz1",
-                "l": [39.25274, -106.83384],
-                "site": "aces"
-              },
-              "-KAc4wXO14m8w5WyWpDs": {
-                "activity": "-KAc4wV773lqxuhz1iK4",
-                "id": "-KAc4wXO14m8w5WyWpDs",
-                "g": "xp7ez8xzpx",
-                "l": [41.44442, 140.26244],
-                "site": "shirakami"
-              }
-        }
-
-
-#### Read Activity Location [GET /geo/activities/{id}.json]
-
-Returns a single activity location record from the database.
-
-+ Parameters
-    + id: `-KAc4wXO14m8w5WyWpDs` (required) - the id of the activity location to read.
-
-+ Response 200 (application/json)
-
-        {
-            "activity": "-KAc4wV773lqxuhz1iK4",
-            "id": "-KAc4wXO14m8w5WyWpDs",
-            "g": "xp7ez8xzpx",
-            "l": [41.44442, 140.26244],
-            "site": "shirakami"
-        }
-
-#### List Locations For Activity Or Site [GET /geo/activities.json{?orderBy}{?equalTo}]
-
-Returns all locations where a specific activity is located or lists activity locations available at a site.
-
-+ Parameters
-    + orderBy: `"activity"` (required) - what type of record to list for, must be one of ["activity", "site"]
-    + equalTo: `"-KAc4wV773lqxuhz1iK4"` (required) - the id of the activity or site to find locations for
-    
-+ Response 200 (application/json)
-
 ### Observations [/observations]
 
 ```
@@ -562,6 +461,7 @@ Returns all locations where a specific activity is located or lists activity loc
 |   * g                  |
 |   * data               |
 |   * status             |
+|   * source             |
 |   * [likes]            |
 |     * user            +-----> USER::id
 |   * [comments]         |
@@ -596,13 +496,14 @@ as to what structure this data will have.
 
 + Attributes
     + id (string, required) - unique autogenerated-id for the observation (MUST match the key of this record)
-    + activity (string, required) - the id of the project this observation was recorded for
-    + site (string, required) - the id of the site this observation was recorded for (Should match the submitter's affiliation)
+    + activity (string, required) - the id of the project this observation was recorded for (MUST match the key of an ACTIVITY record)
+    + site (string, required) - the id of the site this observation was recorded for (Should match the submitter's affiliation. MUST match the key of a SITE record)
     + observer (string, required) - the id of the user who submitted the observation (MUST match authenticated user's UID)
     + l (object, required) - the lat/long coordinate where the observation took place
     + g (string, required) - the geohash where the observation took place
     + data (object, required) - freeform data submitted as part of the observation
-    + status (string, optional) - indicates if the observation has been deleted (Should be absent or "deleted")
+    + status (string, optional) - indicates if the observation has been deleted (valid values: null, "deleted")
+    + source (string, required) - the platform on which this observation was created (valid values: "web", "android", "ios")
     + likes (object, optional) - likes by other users on the observation, by user id, may be null/not present if there are no likes
     + comments (object, optional) - comments by other users on the observation, by comment id, may be null/not present if there are no comments
     
@@ -847,7 +748,8 @@ At some point the status may change to values such as "doing", "done", "deleted"
     + group (string, required) - the name of the idea group this idea belongs to (Should be "idea" or "challenge")
     + content (string, required) - the user submitted text describing the idea
     + icon_url (string, optional) - url to an icon representing the idea or group, or a user-submitted image to illustrate the idea
-    + status (string, required) - describes the state of the idea (proposed, implemented, deleted, etc.) (Should be "to do" when created)
+    + status (string, required) - describes the state of the idea (valid values: "doing", "implementing", "done", "integrated")
+    + source (string, required) - the platform on which this idea was created (valid values: "web", "android", "ios")
     + submitter (string, required) - the id of the user who submitted the idea (MUST match the authenticated user's UID)
     + likes (object, optional) - likes by other users on the idea, by user id, may be null/not present if there are no likes
     + comments (object, optional) - comments by other users on the idea, by comment id, may be null/not present if there are no comments
@@ -1054,7 +956,7 @@ information.
     + display_name (string, required) - the name the user wants displayed on their content
     + avatar (string, optional) - url to an image representing the user
     + bio (string, optional) - brief text describing the user
-    + affiliation (string, required) - the site the user is associated with (Should match the key of a SITE record)
+    + affiliation (string, required) - the site the user is associated with (MUST match the key of a SITE record)
     + latest_contribution (number, optional) - the timestamp of the most recent observation associated with this user, if any
 
 ### Users Private [/users-private]
@@ -1101,7 +1003,7 @@ the required and which optional consent clauses the user accepted, example:
 
 + Attributes
     + id (string, required) - the firebase generated auth id for this user (MUST match the key of this record)
-    + consent (object, required) - what consent data the user has provided. (MUST contain one or more children with boolean values)
+    + consent (object, optional) - what consent data the user has provided.
     + name (string, required) - the user's real name
     
 #### Create User [POST /users]
@@ -1232,11 +1134,11 @@ Users may belong to one or more Groups, which contain one or more users. A group
     + name (string, required) - the name of the group
     + avatar (string, required) - url to an icon representing the group
     + description (string, required) - description of the group
-    + affiliation (string, required) - a site name or role applicable to group members
+    + affiliation (string, required) - a site name or role applicable to group members (MUST match the key of a SITE record)
     + creator (string, required) - the id of the user who created the group
     + members (object, optional) - id's of each user who belongs to the group, may be null/absent if there are no other members
 
-### Commenting [/comments]
+### Comments [/comments]
 
 Both `Idea` and `Observation` support comments. Any user may comment on any other users idea or observation.
 Comments are stored in a separate table.
@@ -1250,6 +1152,7 @@ Comments are stored in a separate table.
 |   * commenter         +-------> USER::id
 |   * comment            |
 |   * status             |
+|   * source             |
 |                        |
 +------------------------+  
 ```
@@ -1263,10 +1166,12 @@ Comments are stored in a separate table.
 
 + Attributes
     + id (string, required) - the id of the comment (MUST match the key of this record)
-    + parent (string, required) - the id of the parent record (Should match the key of an OBSERVATION or IDEA record)
+    + parent (string, required) - the id of the parent record (MUST match the key of a record in the context collection [see context])
+    + context (string, required) - the type of parent record (valid values: "observations", "ideas")
     + commenter (string, required) - the id of the user who created the comment (MUST match the authenticated user's UID)
     + comment (string, required) - the user submitted comment text
     + status (string, optional) - indicates if the comment has been deleted (Should be absent or "deleted")
+    + source (string, required) - the platform on which this comment was created (valid values: "web", "android", "ios")
 
 #### List Comments [GET /comments.json{?orderBy}{?limitToFirst}]
 
