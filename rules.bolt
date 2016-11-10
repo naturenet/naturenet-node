@@ -10,6 +10,11 @@ function isUser() {
     auth != null && auth.uid != null;
 }
 
+// Checks if the current operation is being performed by a user with admin level permissions.
+function isAdmin() {
+    root['users-ranks'][auth.uid] == "admin"
+}
+
 type Timestamped {
     created_at: Number
     updated_at: Number
@@ -55,7 +60,7 @@ path /comments {
 
 // Allow writes if the commenter is the current user and the parent record already exists
 path /comments/{c_id} is Comment {
-    write() { isSelf(this.commenter) }
+    write() { ( isSelf(this.commenter) ) || isAdmin() }
 }
 
 // GROUPS
@@ -113,7 +118,7 @@ path /ideas-deleted {
 }
 
 path /ideas/{idea_id} is Idea {
-    write() { isSelf(this.submitter) }
+    write() { ( isSelf(this.submitter) ) || isAdmin() }
 }
 
 // Allow writes to comments if the comment already exists and belongs to the current user
@@ -137,6 +142,7 @@ type Observation extends Timestamped {
     observer: String
     status: String | Null
     site: String
+    where: String | Null
     likes: Object | Null
     comments: Object | Null
     source: String | Null // require when ready
@@ -156,7 +162,7 @@ path /observations-deleted {
 }
 
 path /observations/{obs_id} is Observation {
-    write() { isSelf(this.observer) } //&& root.activities[this.activity].sites[root.users[this.observer].affiliation] == true }
+    write() { ( isSelf(this.observer) ) || isAdmin() } //&& root.activities[this.activity].sites[root.users[this.observer].affiliation] == true }
 }
 
 // Allow writes to comments if the comment already exists and belongs to the current user
