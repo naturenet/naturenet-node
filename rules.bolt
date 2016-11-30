@@ -241,3 +241,12 @@ path /users-ranks {
     read() { true }
     write() { false }
 }
+
+path /status {
+    read() { true }
+    write() { true }
+}
+
+path /tags {
+    read() { true }
+}
