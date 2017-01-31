@@ -175,6 +175,22 @@ path /observations/{obs_id}/likes/{user_id} is Boolean {
     write() { isSelf(user_id) }
 }
 
+// GEO
+
+type Geodata {
+    g: String
+    l: Object
+}
+
+path /geo {
+    read() { true }
+    index() {[ ".key", "g" ]}
+}
+
+path /geo/{geo_id} is Geodata {
+    write() { root.observations[geo_id] != null && isSelf(root.observations[geo_id].observer) }
+}
+
 // SITES
 
 // Sites cannot be written to without admin privileges but are publicly readable.
