@@ -70,25 +70,23 @@ observations.once('value', function(obsSnapshot){
         });
     });
 }).then(ok => {
-// Move observations at [0,0] to the user's affiliated site
+// Move observations at [0,0] to the associated site
   sites.once('value', function(siteSnapshot){
-    users.once('value', function(usersSnapshot){
-        observations.once('value', function(obsSnapshot){
-            obsSnapshot.forEach(function(obs) {
-                if (!obs.hasChild('l') || obs.child('l').val().indexOf(0) > -1) {
-                    var userId = obs.child('observer').val();
-                    var site = usersSnapshot.child(userId).child('affiliation').val();
-                    if (siteSnapshot.hasChild(site)) {
-                        var l = siteSnapshot.child(site).child('l').val();
-                        observations.child(obs.key).child('l').set(l);
-                        console.log('moved observation ' + obs.key + ' to site ' + site);
-                    } else {
-                        console.log('could not move observation ' + obs.key + ' to site ' + site);
-                    }
+    observations.once('value', function(obsSnapshot){
+        obsSnapshot.forEach(function(obs) {
+            if (!obs.hasChild('l') || obs.child('l').val().indexOf(0) > -1) {
+                var userId = obs.child('observer').val();
+                var site = obs.child('site').val();
+                if (siteSnapshot.hasChild(site)) {
+                    var l = siteSnapshot.child(site).child('l').val();
+                    observations.child(obs.key).child('l').set(l);
+                    console.log('moved observation ' + obs.key + ' to site ' + site);
+                } else {
+                    console.log('could not move observation ' + obs.key + ' to site ' + site);
                 }
+            }
 
-                return false;
-            });
+            return false;
         });
     });
   });
@@ -106,6 +104,20 @@ observations.once('value', function(obsSnapshot){
       return false;
     });
   });
+}).then(ok => {
+// Remove Geohash for any missing observations
+  geo.once('value', function (geoSnapshot) {
+    observations.once('value', function(obsSnapshot){
+      geoSnapshot.forEach(function(g) {
+        if( !obsSnapshot.hasChild(g.key) ) {
+            g.ref.remove().then(ok => {
+                console.log('removed geofire reference to missing observation ' + g.key)
+            });
+        }
+        return false;
+      });
+    })
+  })
 }).then(ok => {
 // Extract activity and site IDs for observations using old geo-activity references
   geo.once('value', function (geoSnapshot) {
