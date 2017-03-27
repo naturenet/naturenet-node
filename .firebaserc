@@ -2,6 +2,7 @@
   "projects": {
     "prod": "firebase-naturenet",
     "staging": "naturenet-staging",
-    "testing": "naturenet-testing"
+    "testing": "naturenet-testing",
+    "default": "firebase-naturenet"
   }
 }

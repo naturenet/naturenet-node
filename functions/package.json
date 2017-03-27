@@ -1,0 +1,20 @@
+{
+  "name": "naturenet-functions",
+  "description": "Firebase Cloud Functions for NatureNet",
+  "dependencies": {
+    "firebase": "^3.7.3",
+    "firebase-admin": "^4.1.2",
+    "firebase-functions": "^0.5",
+    "geofire": "^4.1.2"
+  },
+  "private": true,
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "mocha": "^3.2.0",
+    "sinon": "^1.17.7"
+  },
+  "scripts": {
+    "test": "./node_modules/.bin/mocha --reporter spec"
+  }
+}

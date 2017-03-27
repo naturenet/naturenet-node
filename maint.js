@@ -91,6 +91,16 @@ observations.once('value', function(obsSnapshot){
     });
   });
 }).then(ok => {
+// Assign observations with no site to 'elsewere'
+  observations.once('value', function (obsSnapshot) {
+    obsSnapshot.forEach( function (obs) {
+      if (!obs.child('site').val()) {
+        obs.ref.child('site').set('zz_elsewhere');
+        console.log(obs.ref.key + ' assigned to Elsewhere');
+      }
+    });
+  })
+}).then(ok => {
 // Generate Geohash for all observations
   observations.once('value', function(obsSnapshot){
     obsSnapshot.forEach(function(obs) {
