@@ -53,3 +53,43 @@ exports.validateObservation = functions.database.ref('/observations/{obsId}').on
         return new GeoFire(geo).set(id, observation.l);
     }
 });
+
+exports.validateIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event => {
+    const idea = event.data.val();
+    const id = event.params.ideaId;
+
+    if(!!idea && !!idea.status && idea.status.toLowerCase() === 'deleted') { // handle deleted status
+        console.log('Idea deleted: ', id);
+
+        return admin.database().ref('/ideas-deleted').child(id).set(idea)
+            .then(function() {
+                return event.data.adminRef.remove()
+                    .catch(function(error) {
+                        console.log("Failed to delete original record: " + error.message)
+                    });
+            })
+            .catch(function(error) {
+                console.log("Failed to copy record to quarantine: " + error.message)
+            });
+    }
+});
+
+exports.validateComment = functions.database.ref('/comments/{cId}').onWrite(event => {
+    const comment = event.data.val();
+    const id = event.params.cId;
+
+    if(!!comment && !!comment.status && comment.status.toLowerCase() === 'deleted') { // handle deleted status
+        console.log('Comment deleted: ', id);
+
+        return admin.database().ref('/comments-deleted').child(id).set(comment)
+            .then(function() {
+                return event.data.adminRef.remove()
+                    .catch(function(error) {
+                        console.log("Failed to delete original record: " + error.message)
+                    });
+            })
+            .catch(function(error) {
+                console.log("Failed to copy record to quarantine: " + error.message)
+            });
+    }
+});
