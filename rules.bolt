@@ -21,19 +21,34 @@ type Timestamped {
 }
 
 // ACTIVITIES
+type Project extends Timestamped {
+    id: String
+    name: String
+    description: String
+    submitter: String
+    sites: Object | Null
+    latest_contribution: Number | Null
+    icon_url: String | Null
+    source: String | Null
+    status: String | Null
+    
+    validate() {
+        this.id == activity_id
+    }
+}
 
-// Activities cannot be written to without admin privileges but are publicly readable.
-//
-// NOTE: Activities do not have any validation rules since admin writes will bypass
-//       validation.
 path /activities {
     read() { true }
-    write() { false }
-    index() {[ ".key", "status" ]}
+    index() {[ ".key", "name", "submitter", "description", "status" ]}
+}
+
+// Allow writes if the submitter is the current user
+path /activities/{activity_id} is Project {
+    write() { ( isSelf(this.submitter) ) || isAdmin() }
 }
 
 // Exception: users can overwrite latest_contribution on existing activities to keep sorting by contribution in sync
-path /activities/{id}/latest_contribution is Number {
+path /activities/{activity_id}/latest_contribution is Number {
     write() { isUser() && prior(this) != null }
 }
 
@@ -210,10 +225,11 @@ type PublicUserData extends Timestamped {
     avatar: String | Null
     display_name: String
     affiliation: String
-	  bio: String | Null
+    bio: String | Null
     latest_contribution: Number | Null
     groups: Object | Null
-
+    source: String | Null
+    
     validate() {
         this.id == user_id && root.sites[this.affiliation] != null
     }
