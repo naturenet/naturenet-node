@@ -5,7 +5,8 @@
     "firebase": "^3.7.3",
     "firebase-admin": "^4.1.2",
     "firebase-functions": "^0.5",
-    "geofire": "^4.1.2"
+    "geofire": "^4.1.2",
+    "nodemailer": "4.0.1"
   },
   "private": true,
   "devDependencies": {
