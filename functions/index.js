@@ -320,3 +320,76 @@ exports.activityNotification = functions.database.ref('/activities/{activityId}'
         });
     }
 });
+
+//this function sends a notification to the user's phone when someone comments on their observation or idea
+exports.pushNotificationComment = functions.database.ref('/comments/{cId}')
+  .onWrite(event => {
+    //get all the comment information here
+    const commentInfo = event.data.current.val();
+    var commenter = commentInfo.commenter;
+    var context = commentInfo.context;
+    var parent = commentInfo.parent;
+
+    //declare some variables that will be needed
+    var submitter;
+    var userToken;
+    var databaseRef;
+    var message;
+
+    //declare database reference based on the context
+    if(context === 'observations'){
+      databaseRef = admin.database().ref('/observations').child(parent).child('observer');
+      message = ' commented on your Observation.'
+    }else if (context == 'ideas') {
+      databaseRef = admin.database().ref('/ideas').child(parent).child('submitter');
+      message = ' commented on your Design Idea.'
+    }
+
+      //query for the user who submitted the observation
+      databaseRef.once('value', function(snap){
+        submitter = snap.val();
+
+        //make sure the observation submitter and commenter aren't the same person
+        if(submitter != commenter){
+
+          console.log('Notification to be sent to: ' + submitter);
+
+          //if they're not the same person, query for the submitter's notification token so we can send the notification
+          admin.database().ref('/users').child(submitter).child('notification_token').once('value', function(snap){
+            userToken = snap.val();
+
+            //make sure the user has a token
+            if(userToken != null){
+              console.log('Sending notification to: ' + submitter);
+
+
+              admin.database().ref('/users').child(commenter).child('display_name').once('value', function(snap){
+
+                var user = snap.val();
+
+                //create the notification payload
+                let payload = {
+                    data: {
+                      title: 'New Comment',
+                      context: context,
+                      parent: parent,
+                      body: user + message,
+                      sound: 'default'
+                    }
+                  };
+                //send the notification
+                return admin.messaging().sendToDevice(userToken, payload).then(ok =>{
+                  console.log('Notification sent to: ' + submitter);
+                }).catch(error => {
+                  console.log('Could not send notification.');
+                });
+              })
+
+            }
+
+          });
+
+        }
+
+      });
+    });

@@ -31,7 +31,7 @@ type Project extends Timestamped {
     icon_url: String | Null
     source: String | Null
     status: String | Null
-    
+
     validate() {
         this.id == activity_id
     }
@@ -226,10 +226,11 @@ type PublicUserData extends Timestamped {
     display_name: String
     affiliation: String
     bio: String | Null
+    notification_token: String | Null
     latest_contribution: Number | Null
     groups: Object | Null
     source: String | Null
-    
+
     validate() {
         this.id == user_id && root.sites[this.affiliation] != null
     }
