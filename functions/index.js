@@ -8,6 +8,8 @@ const nnemail = encodeURIComponent(functions.config().nn.email);
 const nnp = encodeURIComponent(functions.config().nn.p);
 const mailTransport = nodemailer.createTransport(`smtps://${nnemail}:${nnp}@smtp.gmail.com`);
 
+const devEmails = ["mj_mahzoon@yahoo.com", "smacneil01@gmail.com", "rtrejo@uncc.edu"];
+
 var mailOptions = {
     from: '"NatureNet" <noreply@nature-net.org>'
 };
@@ -83,6 +85,14 @@ exports.validateIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =
         var post = { time: idea.created_at, context: "ideas" };
         admin.database().ref('/users-private').child(idea.submitter).child("my_posts").child(id).set(post)
             .catch(function(error) { console.log("Failed to add post (idea): " + error.message); } );
+        // send an email to the dev team about a new design idea
+        var subject = "[NatureNet] We have a new design idea.";
+        var body =  "Hi, \n\nA new design idea was just created.\n\nThe design idea info:\nId: " +
+                    id + "\nText: " + idea.content +
+                    "\n\nRegards,\nNatureNet Team";
+        devEmails.forEach(function (email) {
+            sendEmail(email, subject , body);
+        });
     }
     
     if(!!idea && !!idea.status && idea.status.toLowerCase() === 'deleted') { // handle deleted status
@@ -310,12 +320,11 @@ exports.activityNotification = functions.database.ref('/activities/{activityId}'
     const activity = event.data.val();
     const id = event.params.activityId;
     if (!event.data.previous.exists()) { // the project was first created
-        var subject = "[NatureNet] You have a new project.";
+        var subject = "[NatureNet] We have a new project.";
         var body =  "Hi, \n\nA new project was just created.\n\nThe project info:\nId: " +
                     id + "\nName: " + activity.name + "\nDescription: " + activity.description +
                     "\n\nRegards,\nNatureNet Team";
-        var emails = ["mj_mahzoon@yahoo.com", "smacneil01@gmail.com"];
-        emails.forEach(function (email) {
+        devEmails.forEach(function (email) {
             sendEmail(email, subject , body);
         });
     }
