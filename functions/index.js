@@ -13,7 +13,7 @@ const devEmails = ["mj_mahzoon@yahoo.com", "smacneil01@gmail.com", "rtrejo@uncc.
 var mailOptions = {
     from: '"NatureNet" <noreply@nature-net.org>'
 };
-  
+
 var GeoFire = require('geofire');
 admin.initializeApp(functions.config().firebase);
 
@@ -38,7 +38,7 @@ exports.validateObservation = functions.database.ref('/observations/{obsId}').on
 
         admin.database().ref('/users-private').child(observation.observer).child("my_posts").child(id).remove()
             .catch(function(error) { console.log("Failed to delete post (observation): " + error.message); });
-        
+
         return admin.database().ref('/observations-deleted').child(id).set(observation)
             .then(function() {
                 return event.data.adminRef.remove()
@@ -78,7 +78,12 @@ exports.validateObservation = functions.database.ref('/observations/{obsId}').on
 
 exports.validateIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event => {
     const idea = event.data.val();
+    //check to see if the idea was deleted. if so, simply return null so we don't do anything else
+    if(idea == null){
+      return null;
+    }
     const id = event.params.ideaId;
+    var submitter = idea.submitter;
 
     // When the idea is first created
     if (!event.data.previous.exists()) {
@@ -94,13 +99,14 @@ exports.validateIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =
             sendEmail(email, subject , body);
         });
     }
-    
-    if(!!idea && !!idea.status && idea.status.toLowerCase() === 'deleted') { // handle deleted status
+
+    if(!!idea && !!idea.status && event.data.child('status').changed()) { // handle a change in status
+        if(idea.status.toLowerCase() === 'deleted'){  //handle deleted status
         console.log('Idea deleted: ', id);
 
         admin.database().ref('/users-private').child(idea.submitter).child("my_posts").child(id).remove()
             .catch(function(error) { console.log("Failed to delete post (idea): " + error.message); });
-        
+
         return admin.database().ref('/ideas-deleted').child(id).set(idea)
             .then(function() {
                 return event.data.adminRef.remove()
@@ -111,26 +117,58 @@ exports.validateIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =
             .catch(function(error) {
                 console.log("Failed to copy record to quarantine: " + error.message)
             });
+          }else{  //otherwise, we know the status was changed to something else
+            console.log('Status has changed on an idea: ' + idea.id);
+            //get the user's email
+            admin.auth().getUser(submitter).then(function(user){
+              var to = user.email;
+              var subject = "Your design idea status has changed.";
+              var html = '<html><body><p>Recently, your design idea status was updated to: <b>' + ideaStatus(idea.status) +
+                        '</b>.<br><br>"' + idea.content + '"<br><br>Please visit <a href = https://www.nature-net.org/ideas>www.nature-net.org</a>' +
+                        ' to see the idea on the website. <br>NatureNet Team</p></body></html>';
+
+
+              sendEmailHtml(to, subject, html);
+            });
+          }
     }
 });
+
+function ideaStatus(status){
+  var status;
+  switch (status) {
+    case 'doing': status = "Discussing";
+      break;
+    case 'developing': status = "Developing";
+      break;
+    case 'testing': status = 'Testing';
+      break;
+    case 'done': status =  "Done";
+      break;
+    default: status = "Discussing";
+      break;
+  }
+
+  return status;
+}
 
 exports.validateComment = functions.database.ref('/comments/{commentId}').onWrite(event => {
     const comment = event.data.val();
     const comment_id = event.params.commentId;
     var parent_ref;
-    
+
     if (event.data.current.exists()) {  // the comment was created or edited
-        
+
         if (comment.context == "observations")
             parent_ref = admin.database().ref('/observations').child(comment.parent).child("observer");
         if (comment.context == "ideas")
             parent_ref = admin.database().ref('/ideas').child(comment.parent).child("submitter");
         var post_id = comment.parent + "_" + comment.commenter;
-        
+
         if (parent_ref) {
             parent_ref.once("value", function(snapshot) {
                 var parent_user_id = snapshot.val();
-                
+
                 if (!event.data.previous.exists()) { // the comment was first created
                     var timestamp = admin.database.ServerValue.TIMESTAMP;
                     var post = {
@@ -144,7 +182,7 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
                     };
                     admin.database().ref('/users-private').child(parent_user_id).child("comments").child(post_id).set(post)
                     .catch(function(error) { console.log("Failed to add the comment: " + error.message); } );
-                    
+
                     admin.database().ref('/users').child(parent_user_id).child("display_name").once("value", function(snapshot1) {
                         var the_parent_user_displayName = snapshot1.val();
                         admin.database().ref('/users').child(comment.commenter).child("display_name").once("value", function(snapshot2) {
@@ -156,7 +194,7 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
                                   mailOptions.to = the_parent_user.email;
                                   mailOptions.subject = "[NatureNet] You have a new comment.";
                                   mailOptions.text = "Hey " + the_parent_user_displayName + ", \n\n You have a new comment from " +
-                                                     the_commenter_displayName + ":\n\"" + comment.comment + 
+                                                     the_commenter_displayName + ":\n\"" + comment.comment +
                                                      "\"\n\nPlease visit www.nature-net.org to see the comment in the website.\n\n" +
                                                      "NatureNet Team";
                                   mailTransport.sendMail(mailOptions).then(() => {
@@ -179,24 +217,24 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
         }
     }
     else { // the comment was deleted
-        
+
         const deleted_comment = event.data.previous.val();
-        
+
         if (deleted_comment.context == "observations")
             parent_ref = admin.database().ref('/observations').child(deleted_comment.parent).child("observer");
         if (deleted_comment.context == "ideas")
             parent_ref = admin.database().ref('/ideas').child(deleted_comment.parent).child("submitter");
         var post_id = deleted_comment.parent + "_" + deleted_comment.commenter;
-        
+
         if (parent_ref) {
             parent_ref.once("value", function(snapshot) {
                 var parent_user_id = snapshot.val();
-                
+
                 if (parent_user_id) {
                     admin.database().ref('/users-private').child(parent_user_id).child("comments").child(post_id).remove()
                     .catch(function(error) { console.log("Failed to delete the comment: " + error.message); });
                 }
-                
+
                 return admin.database().ref('/comments-deleted').child(comment_id).set(deleted_comment)
                     .then(function() {
                         return event.data.adminRef.remove()
@@ -219,10 +257,10 @@ exports.validateObservationLike = functions.database.ref('/observations/{observa
     const observer_ref = admin.database().ref('/observations').child(observation_id).child("observer");
     var observer_id;
     var post_id = observation_id + "_" + user_id;
-        
+
     observer_ref.once("value", function(snapshot) {
         observer_id = snapshot.val();
-        
+
         if (!event.data.previous.exists()) { // the like value was first created
             var timestamp = admin.database.ServerValue.TIMESTAMP;
             var post = {
@@ -234,7 +272,7 @@ exports.validateObservationLike = functions.database.ref('/observations/{observa
                 user: user_id,
                 seen: false
             };
-            
+
             admin.database().ref('/users-private').child(observer_id).child("likes").child(post_id).set(post)
             .catch(function(error) { console.log("Failed to add post (observation-like): " + error.message); } );
         }
@@ -256,7 +294,7 @@ exports.validateObservationLike = functions.database.ref('/observations/{observa
                 .catch(function(error) { console.log("Failed to update post (observation-like): " + error.message); } );
             }
         }
-    }); 
+    });
 });
 
 exports.validateIdeaLike = functions.database.ref('/ideas/{ideaId}/likes/{userId}').onWrite(event => {
@@ -266,10 +304,10 @@ exports.validateIdeaLike = functions.database.ref('/ideas/{ideaId}/likes/{userId
     const submitter_ref = admin.database().ref('/ideas').child(idea_id).child("submitter");
     var submitter_id;
     var post_id = idea_id + "_" + user_id;
-        
+
     submitter_ref.once("value", function(snapshot) {
         submitter_id = snapshot.val();
-        
+
         if (!event.data.previous.exists()) { // the like value was first created
             var timestamp = admin.database.ServerValue.TIMESTAMP;
             var post = {
@@ -281,7 +319,7 @@ exports.validateIdeaLike = functions.database.ref('/ideas/{ideaId}/likes/{userId
                 user: user_id,
                 seen: false
             };
-            
+
             admin.database().ref('/users-private').child(submitter_id).child("likes").child(post_id).set(post)
             .catch(function(error) { console.log("Failed to add post (idea-like): " + error.message); } );
         }
@@ -303,17 +341,28 @@ exports.validateIdeaLike = functions.database.ref('/ideas/{ideaId}/likes/{userId
                 .catch(function(error) { console.log("Failed to update post (idea-like): " + error.message); } );
             }
         }
-    }); 
+    });
 });
 
 function sendEmail(email, subject, body) {
     mailOptions.to =  email;
     mailOptions.subject =  subject;
     mailOptions.text =  body;
-    
+
     mailTransport.sendMail(mailOptions).then(() => {
         console.log('A notification email sent to: ', email);
     });
+}
+
+//This function sends email with html content only.
+function sendEmailHtml(email, subject, html){
+  mailOptions.to = email;
+  mailOptions.subject = subject;
+  mailOptions.html = html;
+
+  mailTransport.sendMail(mailOptions).then(() => {
+    console.log('Email sent to: ' , email);
+  })
 }
 
 exports.activityNotification = functions.database.ref('/activities/{activityId}').onWrite(event => {
@@ -328,6 +377,36 @@ exports.activityNotification = functions.database.ref('/activities/{activityId}'
             sendEmail(email, subject , body);
         });
     }
+});
+
+//send Welcome email when a new user creates an account with NatureNet
+exports.sendWelcomeEmail = functions.auth.user().onCreate(event => {
+  const user = event.data;  //The Firebase user
+  const email = user.email; //The Firebase user's email
+  const uid = user.uid; //The Firebase user's id
+
+  var displayName;
+  var subject;
+  var html;
+
+  //query for the user's display name
+  admin.database().ref('users/').child(uid).child('display_name').once('value', function(snap){
+    displayName = snap.val();
+  }).then(ok => {
+
+    subject = 'Welcome! You are now a member of the NatureNet community.';
+
+    html = '<html><body><p>Dear ' + displayName +
+    ',<br><br>Congratulations, you are now a NatureNet member!<br><br>To make an observation from out in the field please install our phone app which is available on both Android and iOS.<br><br>' +
+    'Don’t forget to tell us your design ideas--your suggestions for improving or adding new features or content to NatureNet--via the phone app or the NatureNet website at ' +
+    '<a href = https://www.nature-net.org>www.nature-net.org</a>.<br><br>' +
+    'Thank you for your interest in the NatureNet project,' +
+    '<br>Naturenet Project Team</p></body>' +
+    '<br><a href = "https://play.google.com/store/apps/details?id=org.naturenet&hl=en">Android</a><br><a href = "https://itunes.apple.com/us/app/naturenet/id1104382694">iOS</a></html>';
+
+    sendEmailHtml(email, subject, html);  //send the email
+  });
+
 });
 
 //this function sends a notification to the user's phone when someone comments on their observation or idea
