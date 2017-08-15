@@ -142,7 +142,7 @@ exports.validateIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =
           ' to see the idea on the website. <br>NatureNet Team</p></body></html>';
 
 
-        //sendEmailHtml(to, subject, html);
+        sendEmailHtml(to, subject, html);
       });
     }
   }
@@ -206,7 +206,7 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
               console.log("Failed to add the comment: " + error.message);
             });
 
-          //make sure the original submitter isn't the commenter
+          //make sure the original idea/observation submitter isn't the commenter
           if (comment.commenter != parent_user_id) {
 
             admin.database().ref('/users').child(parent_user_id).child("display_name").once("value", function(snapshot1) {
@@ -215,47 +215,49 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
                 var the_commenter_displayName = snapshot2.val();
                 console.log("Sending email to " + comment.context + " submitter " + the_parent_user_displayName + " for " +
                   the_commenter_displayName + "'s comment.");
-                // send notification about the new comment
-                admin.auth().getUser(parent_user_id).then(function(the_parent_user) {
-                  mailOptions.to = the_parent_user.email;
-                  mailOptions.subject = "[NatureNet] You have a new comment.";
-                  mailOptions.text = "Hey " + the_parent_user_displayName + ", \n\n You have a new comment from " +
-                    the_commenter_displayName + ":\n\"" + comment.comment +
-                    "\n\nPlease visit www.nature-net.org to see the comment in the website.\n\n" +
-                    "NatureNet Team";
-                  mailTransport.sendMail(mailOptions).then(() => {
-                    console.log('A notification email sent to: ', the_parent_user.email);
-                  });
+
+                //send email to the observation/idea submitter about the new comment
+                admin.auth().getUser(parent_user_id).then(function(user) {
+                  var email = user.email;
+
+                  var subject = the_commenter_displayName + ' commented on your NatureNet contribution.';
+
+                  var html = '<html><body><p>Dear ' + the_parent_user_displayName +
+                    ',<br><br>Recently, ' + the_commenter_displayName + ' commented on your ' + comment.context.substring(0, comment.context.length -1) + ':<br><br>' +
+                    comment.comment + "<br><br>Want to reply? Click <a href = https://www.nature-net.org>here</a> to reply, see others' contributions, or leave comments.<br><br>" +
+                    "Don't forget to share your design ideas and/or comments on the NatureNet website and mobile apps. Your participation strengthens the community.<br><br>" +
+                    'Sincerely, <br>NatureNet Project Team</p></body></html>';
+
+                    sendEmailHtml(email, subject, html);
                 });
+
               });
             });
 
           }
 
+          //Set will hold references to users we've already sent emails to
           var sent = new Set();
           //send notification to all other participants of the comment thread below
-          //find all the comments that belong to the specific observation/idea
+          //here we query to find all the comments that belong to the specific observation/idea
           admin.database().ref('/comments').orderByChild('parent').equalTo(comment.parent).once('value', function(snapshot) {
-            //log the number of comments
-            console.log(snapshot.numChildren());
 
             //iterate over all the previous comments for this observation/idea to send them notifications
             snapshot.forEach(function(data) {
+              //id and username of person who has contributed to the thread
               var previousCommenterId = data.val().commenter;
-              //person who submitted the comment
               var previousCommenterName;
-              //person who submitted the idea/observation
+              //person who submitted the new comment
               var commenterName;
 
-              console.log(previousCommenterId + " checked against: " + comment.commenter + ", " + parent_user_id);
-              //make sure the commenter isn't the same person and isn't the original poster of the observation/idea
+              //make sure the previous contributor isn't the same person as the new commenter and isn't the original poster of the observation/idea
               if (previousCommenterId != comment.commenter && previousCommenterId != parent_user_id) {
 
                 //check to see if we've already sent a notification to this user
                 if (!sent.has(previousCommenterId)) {
 
                   sent.add(previousCommenterId);
-                  //query to get the username of the previous commenter
+                  //query to get the username of the comment thread contributor so we can email them
                   admin.database().ref('/users').child(previousCommenterId).child('display_name').once('value', function(snap) {
                     previousCommenterName = snap.val();
                     //query to get the username of the person who commented
@@ -268,13 +270,13 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
 
                         var email = user.email;
 
-                        var subject = commenterName + 'has added a comment.';
+                        var subject = commenterName + ' has added a comment.';
 
                         var html = '<html><body><p>Dear ' + previousCommenterName +
                           ',<br><br>Recently, ' + commenterName + ' commented:<br><br>' +
                           comment.comment + '<br><br>See the comment thread in context: ' +
                           '<a href = https://www.nature-net.org>www.nature-net.org</a>.<br><br>' +
-                          'Sincerely, <br><br>NatureNet Project Team</p></body></html>';
+                          'Sincerely, <br>NatureNet Project Team</p></body></html>';
 
                         sendEmailHtml(email, subject, html);
 
@@ -285,9 +287,8 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
 
                 }
 
-              } else {
-                console.log("Check failed.")
               }
+
             });
           });
         } else { // the comment was edited
@@ -498,7 +499,7 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(event => {
       '<br>Naturenet Project Team</p></body>' +
       '<br><a href = "https://play.google.com/store/apps/details?id=org.naturenet&hl=en">Android</a><br><a href = "https://itunes.apple.com/us/app/naturenet/id1104382694">iOS</a></html>';
 
-    //sendEmailHtml(email, subject, html);  //send the email
+    sendEmailHtml(email, subject, html);  //send the email
   });
 
 });
