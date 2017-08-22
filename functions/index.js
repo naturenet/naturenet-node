@@ -108,6 +108,8 @@ exports.onWriteIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =>
     devEmails.forEach(function(email) {
       sendEmail(email, template["subject"], template["content"], template["isHTML"]);
     });
+    //send push notification to users about new idea
+    sendPushNotification_NewIdea(id);
   }
 
   if (!!idea && !!idea.status && event.data.child('status').changed()) { // handle a change in status
@@ -492,6 +494,28 @@ function sendPushNotification_IdeaStatusChange(token, parent, status){
 
   admin.messaging().sendToDevice(token, payload).then(ok => {
     console.log('Push notification sent about the status change of idea: ' + parent);
+  });
+}
+
+function sendPushNotification_NewIdea(parent){
+  let payload = {
+    notification: {
+      title: 'New Design Idea',
+      body: 'Check out this new design idea. Do you want to comment?',
+      sound: "default",
+      click_action: "android.intent.action.MAINACTIVITY"
+    },
+    data: {
+      title: 'New Design Idea',
+      context: 'idea',
+      parent: parent,
+      body: 'Check out this new design idea. Do you want to comment?',
+      sound: 'default'
+    }
+  };
+
+  admin.messaging().sendToTopic('ideas', payload).then(function(){
+    console.log('Succesfully sent new idea notification to ideas topic subscribers');
   });
 }
 
