@@ -421,6 +421,8 @@ exports.onWriteActivity = functions.database.ref('/activities/{activityId}').onW
     devEmails.forEach(function(email) {
       sendEmail(email, template["subject"], template["content"], template["isHTML"]);
     });
+    //send push notification to all users about the new project
+    sendPushNotification_NewProject(id);
   }
 });
 
@@ -516,6 +518,29 @@ function sendPushNotification_NewIdea(parent){
 
   admin.messaging().sendToTopic('ideas', payload).then(function(){
     console.log('Succesfully sent new idea notification to ideas topic subscribers');
+  });
+}
+
+function sendPushNotification_NewProject(parent){
+
+  let payload = {
+    notification: {
+      title: 'New Project',
+      body: 'Check out our new project. Do you want to contribute?',
+      sound: "default",
+      click_action: "android.intent.action.MAINACTIVITY"
+    },
+    data: {
+      title: 'New Project',
+      context: 'activities',
+      parent: parent,
+      body: 'Check out our new project. Do you want to contribute?',
+      sound: 'default'
+    }
+  };
+
+  admin.messaging().sendToTopic('activities', payload).then(ok =>{
+    console.log('Succesfully sent new project notification to project topic subscribers');
   });
 }
 
