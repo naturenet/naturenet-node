@@ -134,11 +134,18 @@ exports.onWriteIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =>
       //get the user's email
       admin.auth().getUser(submitter).then(function(user) {
         var email = user.email;
-        admin.database().ref('/users').child(submitter).child("display_name").once("value", function(snapshot1) {
-          var displayName = snapshot1.val();
+        admin.database().ref('/users').child(submitter).once("value", function(snapshot1) {
+          var displayName = snapshot1.val().display_name;
+          var notification_token = snapshot1.val().notification_token;
           var template = getEmailTemplate_IdeaStatusChange(displayName, idea.status, idea.content);
           sendEmail(email, template["subject"], template["content"], template["isHTML"]);
+
+          if(notification_token!=null){
+            sendPushNotification_IdeaStatusChange(notification_token, id, idea.status);
+          }
         });
+
+
       });
     }
   }
@@ -464,6 +471,29 @@ function sendEmail(email, subject, content, isHTML) {
 }
 
 // push notification functions
+
+function sendPushNotification_IdeaStatusChange(token, parent, status){
+  //create the notification payload
+  let payload = {
+    notification: {
+      title: 'Idea Status Change',
+      body: 'The status of your idea has changed to "' + status + '."',
+      sound: "default",
+      click_action: "android.intent.action.MAINACTIVITY"
+    },
+    data: {
+      title: 'Idea Status Change',
+      context: 'idea',
+      parent: parent,
+      body: 'The status of your idea has changed to "' + status + '."',
+      sound: 'default'
+    }
+  };
+
+  admin.messaging().sendToDevice(token, payload).then(ok => {
+    console.log('Push notification sent about the status change of idea: ' + parent);
+  });
+}
 
 function sendPushNotification_Comment(commenterName, contributerId, context, contributionId, title, body) {
   // send notification to the contributer about a new comment
