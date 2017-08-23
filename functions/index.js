@@ -207,7 +207,7 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
                   // sending notification
                   sendPushNotification_Comment(the_commenter_displayName,
                     parent_user_id,
-                    comment.context.substring(0, comment.context.length -1),
+                    comment.context,
                     comment.parent,
                     'New Comment',
                     the_commenter_displayName + ' commented on your ' + comment.context.substring(0, comment.context.length -1) + ".");
@@ -254,7 +254,7 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
                         // sending notification
                         sendPushNotification_Comment(commenterName,
                           previousCommenterId,
-                          comment.context.substring(0, comment.context.length -1),
+                          comment.context,
                           comment.parent,
                           'New Comment',
                           commenterName + ' commented on a ' + comment.context.substring(0, comment.context.length -1) + ".");
@@ -487,7 +487,7 @@ function sendPushNotification_IdeaStatusChange(token, parent, status){
     },
     data: {
       title: 'Idea Status Change',
-      context: 'idea',
+      context: 'ideas',
       parent: parent,
       body: 'The status of your idea has changed to "' + status + '."',
       sound: 'default'
@@ -509,7 +509,7 @@ function sendPushNotification_NewIdea(parent){
     },
     data: {
       title: 'New Design Idea',
-      context: 'idea',
+      context: 'ideas',
       parent: parent,
       body: 'Check out this new design idea. Do you want to comment?',
       sound: 'default'
