@@ -1,25 +1,23 @@
 'use strict'
 
+const elsewhere = 'zz_elsewhere';
+
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-
 const nodemailer = require('nodemailer');
+const GeoFire = require('geofire');
+
 const nnemail = encodeURIComponent(functions.config().nn.email);
 const nnp = encodeURIComponent(functions.config().nn.p);
 const mailTransport = nodemailer.createTransport(`smtps://${nnemail}:${nnp}@smtp.gmail.com`);
-
 const devEmails = ["mj_mahzoon@yahoo.com", "smacneil01@gmail.com", "rtrejo@uncc.edu"];
-
 var mailOptions = {
   from: '"NatureNet" <noreply@nature-net.org>'
 };
 
-var GeoFire = require('geofire');
 admin.initializeApp(functions.config().firebase);
 
-const elsewhere = 'zz_elsewhere';
-
-exports.validateObservation = functions.database.ref('/observations/{obsId}').onWrite(event => {
+exports.onWriteObservation = functions.database.ref('/observations/{obsId}').onWrite(event => {
   const observation = event.data.val();
   const id = event.params.obsId;
 
@@ -83,13 +81,16 @@ exports.validateObservation = functions.database.ref('/observations/{obsId}').on
   }
 });
 
-exports.validateIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event => {
+exports.onWriteIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event => {
   const idea = event.data.val();
-  //check to see if the idea was deleted. if so, simply return null so we don't do anything else
+  const id = event.params.ideaId;
+
+  //check to see if the idea is null. if so, simply return null so we don't do anything else
+  //Note: idea deletion is handled in this method (around 30 lines down from here).
   if (idea == null) {
     return null;
   }
-  const id = event.params.ideaId;
+
   var submitter = idea.submitter;
 
   // When the idea is first created
@@ -103,13 +104,12 @@ exports.validateIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =
         console.log("Failed to add post (idea): " + error.message);
       });
     // send an email to the dev team about a new design idea
-    var subject = "[NatureNet] We have a new design idea.";
-    var body = "Hi, \n\nA new design idea was just created.\n\nThe design idea info:\nId: " +
-      id + "\nText: " + idea.content +
-      "\n\nRegards,\nNatureNet Team";
+    var template = getEmailTemplate_NewIdeaDev(id, idea.content);
     devEmails.forEach(function(email) {
-      sendEmail(email, subject, body);
+      sendEmail(email, template["subject"], template["content"], template["isHTML"]);
     });
+    //send push notification to users about new idea
+    sendPushNotification_NewIdea(id);
   }
 
   if (!!idea && !!idea.status && event.data.child('status').changed()) { // handle a change in status
@@ -135,43 +135,25 @@ exports.validateIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =
       console.log('Status has changed on an idea: ' + idea.id);
       //get the user's email
       admin.auth().getUser(submitter).then(function(user) {
-        var to = user.email;
-        var subject = "Your design idea status has changed.";
-        var html = '<html><body><p>Recently, your design idea status was updated to: <b>' + ideaStatus(idea.status) +
-          '</b>.<br><br>"' + idea.content + '"<br><br>Please visit <a href = https://www.nature-net.org/ideas>www.nature-net.org</a>' +
-          ' to see the idea on the website. <br>NatureNet Team</p></body></html>';
+        var email = user.email;
+        admin.database().ref('/users').child(submitter).once("value", function(snapshot1) {
+          var displayName = snapshot1.val().display_name;
+          var notification_token = snapshot1.val().notification_token;
+          var template = getEmailTemplate_IdeaStatusChange(displayName, idea.status, idea.content);
+          sendEmail(email, template["subject"], template["content"], template["isHTML"]);
+
+          if(notification_token!=null){
+            sendPushNotification_IdeaStatusChange(notification_token, id, idea.status);
+          }
+        });
 
 
-        sendEmailHtml(to, subject, html);
       });
     }
   }
 });
 
-function ideaStatus(status) {
-  var status;
-  switch (status) {
-    case 'doing':
-      status = "Discussing";
-      break;
-    case 'developing':
-      status = "Developing";
-      break;
-    case 'testing':
-      status = 'Testing';
-      break;
-    case 'done':
-      status = "Done";
-      break;
-    default:
-      status = "Discussing";
-      break;
-  }
-
-  return status;
-}
-
-exports.validateComment = functions.database.ref('/comments/{commentId}').onWrite(event => {
+exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite(event => {
   const comment = event.data.val();
   const comment_id = event.params.commentId;
   var parent_ref;
@@ -206,8 +188,7 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
               console.log("Failed to add the comment: " + error.message);
             });
 
-          //make sure the original idea/observation submitter isn't the commenter
-          if (comment.commenter != parent_user_id) {
+          if (comment.commenter != parent_user_id) { //when original idea/observation submitter isn't the commenter
 
             admin.database().ref('/users').child(parent_user_id).child("display_name").once("value", function(snapshot1) {
               var the_parent_user_displayName = snapshot1.val();
@@ -216,27 +197,27 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
                 console.log("Sending email to " + comment.context + " submitter " + the_parent_user_displayName + " for " +
                   the_commenter_displayName + "'s comment.");
 
-                //send email to the observation/idea submitter about the new comment
+                //send email+notification to the observation/idea submitter about the new comment
                 admin.auth().getUser(parent_user_id).then(function(user) {
+                  // sending email
                   var email = user.email;
-
-                  var subject = the_commenter_displayName + ' commented on your NatureNet contribution.';
-
-                  var html = '<html><body><p>Dear ' + the_parent_user_displayName +
-                    ',<br><br>Recently, ' + the_commenter_displayName + ' commented on your ' + comment.context.substring(0, comment.context.length -1) + ':<br><br>' +
-                    comment.comment + "<br><br>Want to reply? Click <a href = https://www.nature-net.org>here</a> to reply, see others' contributions, or leave comments.<br><br>" +
-                    "Don't forget to share your design ideas and/or comments on the NatureNet website and mobile apps. Your participation strengthens the community.<br><br>" +
-                    'Sincerely, <br>NatureNet Project Team</p></body></html>';
-
-                    sendEmailHtml(email, subject, html);
+                  var template = getEmailTemplate_NewComment(the_commenter_displayName, the_parent_user_displayName,
+                    comment.context.substring(0, comment.context.length -1), comment.comment);
+                  sendEmail(email, template["subject"], template["content"], template["isHTML"]);
+                  // sending notification
+                  sendPushNotification_Comment(the_commenter_displayName,
+                    parent_user_id,
+                    comment.context,
+                    comment.parent,
+                    'New Comment',
+                    the_commenter_displayName + ' commented on your ' + comment.context.substring(0, comment.context.length -1) + ".");
                 });
 
               });
             });
-
           }
 
-          //Set will hold references to users we've already sent emails to
+          //"sent" Set will hold references to users we've already sent emails to
           var sent = new Set();
           //send notification to all other participants of the comment thread below
           //here we query to find all the comments that belong to the specific observation/idea
@@ -267,28 +248,21 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
                       console.log('Sending email to ' + previousCommenterName + " for " + commenterName + "'s comment.");
 
                       admin.auth().getUser(previousCommenterId).then(function(user) {
-
                         var email = user.email;
-
-                        var subject = commenterName + ' has added a comment.';
-
-                        var html = '<html><body><p>Dear ' + previousCommenterName +
-                          ',<br><br>Recently, ' + commenterName + ' commented:<br><br>' +
-                          comment.comment + '<br><br>See the comment thread in context: ' +
-                          '<a href = https://www.nature-net.org>www.nature-net.org</a>.<br><br>' +
-                          'Sincerely, <br>NatureNet Project Team</p></body></html>';
-
-                        sendEmailHtml(email, subject, html);
-
+                        var template = getEmailTemplate_NewReply(commenterName, previousCommenterName, comment.comment);
+                        sendEmail(email, template["subject"], template["content"], template["isHTML"]);
+                        // sending notification
+                        sendPushNotification_Comment(commenterName,
+                          previousCommenterId,
+                          comment.context,
+                          comment.parent,
+                          'New Comment',
+                          commenterName + ' commented on a ' + comment.context.substring(0, comment.context.length -1) + ".");
                       });
                     });
-
                   });
-
                 }
-
               }
-
             });
           });
         } else { // the comment was edited
@@ -339,7 +313,7 @@ exports.validateComment = functions.database.ref('/comments/{commentId}').onWrit
   }
 });
 
-exports.validateObservationLike = functions.database.ref('/observations/{observationId}/likes/{userId}').onWrite(event => {
+exports.onWriteObservationLike = functions.database.ref('/observations/{observationId}/likes/{userId}').onWrite(event => {
   const like_value = event.data.val();
   const observation_id = event.params.observationId;
   const user_id = event.params.userId;
@@ -389,7 +363,7 @@ exports.validateObservationLike = functions.database.ref('/observations/{observa
   });
 });
 
-exports.validateIdeaLike = functions.database.ref('/ideas/{ideaId}/likes/{userId}').onWrite(event => {
+exports.onWriteIdeaLike = functions.database.ref('/ideas/{ideaId}/likes/{userId}').onWrite(event => {
   const like_value = event.data.val();
   const idea_id = event.params.ideaId;
   const user_id = event.params.userId;
@@ -439,43 +413,23 @@ exports.validateIdeaLike = functions.database.ref('/ideas/{ideaId}/likes/{userId
   });
 });
 
-function sendEmail(email, subject, body) {
-  mailOptions.to = email;
-  mailOptions.subject = subject;
-  mailOptions.text = body;
-
-  mailTransport.sendMail(mailOptions).then(() => {
-    console.log('A notification email sent to: ', email);
-  });
-}
-
-//This function sends email with html content only.
-function sendEmailHtml(email, subject, html) {
-  mailOptions.to = email;
-  mailOptions.subject = subject;
-  mailOptions.html = html;
-
-  mailTransport.sendMail(mailOptions).then(() => {
-    console.log('Email sent to: ', email);
-  })
-}
-
-exports.activityNotification = functions.database.ref('/activities/{activityId}').onWrite(event => {
+exports.onWriteActivity = functions.database.ref('/activities/{activityId}').onWrite(event => {
   const activity = event.data.val();
   const id = event.params.activityId;
   if (!event.data.previous.exists()) { // the project was first created
-    var subject = "[NatureNet] We have a new project.";
-    var body = "Hi, \n\nA new project was just created.\n\nThe project info:\nId: " +
-      id + "\nName: " + activity.name + "\nDescription: " + activity.description +
-      "\n\nRegards,\nNatureNet Team";
+    var template = getEmailTemplate_NewActivity(id, activity.name, activity.description)
     devEmails.forEach(function(email) {
-      sendEmail(email, subject, body);
+      sendEmail(email, template["subject"], template["content"], template["isHTML"]);
     });
+    //send push notification to all users about the new project
+    sendPushNotification_NewProject(id);
   }
 });
 
-//send Welcome email when a new user creates an account with NatureNet
-exports.sendWelcomeEmail = functions.auth.user().onCreate(event => {
+exports.onWriteUser = functions.auth.user().onCreate(event => {
+
+  //send Welcome email when a new user creates an account with NatureNet
+
   const user = event.data; //The Firebase user
   const email = user.email; //The Firebase user's email
   const uid = user.uid; //The Firebase user's id
@@ -488,91 +442,217 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(event => {
   admin.database().ref('users/').child(uid).child('display_name').once('value', function(snap) {
     displayName = snap.val();
   }).then(ok => {
-
-    subject = 'Welcome! You are now a member of the NatureNet community.';
-
-    html = '<html><body><p>Dear ' + displayName +
-      ',<br><br>Congratulations, you are now a NatureNet member!<br><br>To make an observation from out in the field please install our phone app which is available on both Android and iOS.<br><br>' +
-      'Don’t forget to tell us your design ideas--your suggestions for improving or adding new features or content to NatureNet--via the phone app or the NatureNet website at ' +
-      '<a href = https://www.nature-net.org>www.nature-net.org</a>.<br><br>' +
-      'Thank you for your interest in the NatureNet project,' +
-      '<br>Naturenet Project Team</p></body>' +
-      '<br><a href = "https://play.google.com/store/apps/details?id=org.naturenet&hl=en">Android</a><br><a href = "https://itunes.apple.com/us/app/naturenet/id1104382694">iOS</a></html>';
-
-    sendEmailHtml(email, subject, html);  //send the email
+    var template = getEmailTemplate_NewUser(displayName);
+    sendEmail(email, template["subject"], template["content"], template["isHTML"]);
   });
 
 });
 
-//this function sends a notification to the user's phone when someone comments on their observation or idea
-exports.pushNotificationComment = functions.database.ref('/comments/{cId}')
-  .onWrite(event => {
-    //get all the comment information here
-    const commentInfo = event.data.current.val();
-    var commenter = commentInfo.commenter;
-    var context = commentInfo.context;
-    var parent = commentInfo.parent;
+// utility functions
 
-    //declare some variables that will be needed
-    var submitter;
-    var userToken;
-    var databaseRef;
-    var message;
+// returning idea status description for sending email notifications
+function getIdeaStatusDescription(status) {
+  if (status === 'done') {
+    return "We are happy to inform you that your design idea has been implemented in NatureNet. We appreciate your contribution and hope you will continue sending us your new design ideas."
+  } else {
+    return 'Currently, your NatureNet design idea is in the <b>' + status + '</b> phase.'
+  }
+}
 
-    //declare database reference based on the context
-    if (context === 'observations') {
-      databaseRef = admin.database().ref('/observations').child(parent).child('observer');
-      message = ' commented on your Observation.'
-    } else if (context == 'ideas') {
-      databaseRef = admin.database().ref('/ideas').child(parent).child('submitter');
-      message = ' commented on your Design Idea.'
+//This function sends email
+function sendEmail(email, subject, content, isHTML) {
+  mailOptions.to = email;
+  mailOptions.subject = subject;
+  if (isHTML) {
+    mailOptions.html = content;
+  } else {
+    mailOptions.text = content;
+  }
+
+  //mailTransport.sendMail(mailOptions).then(() => {
+    console.log('An email was sent to: ', email);
+  //})
+}
+
+// push notification functions
+
+function sendPushNotification_IdeaStatusChange(token, parent, status){
+  //create the notification payload
+  let payload = {
+    notification: {
+      title: 'Idea Status Change',
+      body: 'The status of your idea has changed to "' + status + '."',
+      sound: "default",
+      click_action: "android.intent.action.MAINACTIVITY"
+    },
+    data: {
+      title: 'Idea Status Change',
+      context: 'ideas',
+      parent: parent,
+      body: 'The status of your idea has changed to "' + status + '."',
+      sound: 'default'
     }
+  };
 
-    //query for the user who submitted the observation
-    databaseRef.once('value', function(snap) {
-      submitter = snap.val();
-
-      //make sure the observation submitter and commenter aren't the same person
-      if (submitter != commenter) {
-
-        console.log('Notification to be sent to: ' + submitter);
-
-        //if they're not the same person, query for the submitter's notification token so we can send the notification
-        admin.database().ref('/users').child(submitter).child('notification_token').once('value', function(snap) {
-          userToken = snap.val();
-
-          //make sure the user has a token
-          if (userToken != null) {
-            console.log('Sending notification to: ' + submitter);
-
-
-            admin.database().ref('/users').child(commenter).child('display_name').once('value', function(snap) {
-
-              var user = snap.val();
-
-              //create the notification payload
-              let payload = {
-                data: {
-                  title: 'New Comment',
-                  context: context,
-                  parent: parent,
-                  body: user + message,
-                  sound: 'default'
-                }
-              };
-              //send the notification
-              return admin.messaging().sendToDevice(userToken, payload).then(ok => {
-                console.log('Notification sent to: ' + submitter);
-              }).catch(error => {
-                console.log('Could not send notification.');
-              });
-            })
-
-          }
-
-        });
-
-      }
-
-    });
+  admin.messaging().sendToDevice(token, payload).then(ok => {
+    console.log('Push notification sent about the status change of idea: ' + parent);
   });
+}
+
+function sendPushNotification_NewIdea(parent){
+  let payload = {
+    notification: {
+      title: 'New Design Idea',
+      body: 'Check out this new design idea. Do you want to comment?',
+      sound: "default",
+      click_action: "android.intent.action.MAINACTIVITY"
+    },
+    data: {
+      title: 'New Design Idea',
+      context: 'ideas',
+      parent: parent,
+      body: 'Check out this new design idea. Do you want to comment?',
+      sound: 'default'
+    }
+  };
+
+  admin.messaging().sendToTopic('ideas', payload).then(function(){
+    console.log('Succesfully sent new idea notification to ideas topic subscribers');
+  });
+}
+
+function sendPushNotification_NewProject(parent){
+
+  let payload = {
+    notification: {
+      title: 'New Project',
+      body: 'Check out our new project. Do you want to contribute?',
+      sound: "default",
+      click_action: "android.intent.action.MAINACTIVITY"
+    },
+    data: {
+      title: 'New Project',
+      context: 'activities',
+      parent: parent,
+      body: 'Check out our new project. Do you want to contribute?',
+      sound: 'default'
+    }
+  };
+
+  admin.messaging().sendToTopic('activities', payload).then(ok =>{
+    console.log('Succesfully sent new project notification to project topic subscribers');
+  });
+}
+
+function sendPushNotification_Comment(commenterName, contributerId, context, contributionId, title, body) {
+  // send notification to the contributer about a new comment
+  admin.database().ref('/users').child(contributerId).child('notification_token').once('value', function(snap) {
+    var userToken = snap.val();
+    // make sure the user has a token
+    if (userToken != null) {
+      console.log('Sending notification to: ' + contributerId);
+      //create the notification payload
+      let payload = {
+        notification: {
+          title: title,
+          body: body,
+          sound: "default",
+          click_action: "android.intent.action.MAINACTIVITY"
+        },
+        data: {
+          title: title,
+          context: context,
+          parent: contributionId,
+          body: body,
+          sound: 'default'
+        }
+      };
+      //send the notification
+      return admin.messaging().sendToDevice(userToken, payload).then(ok => {
+        console.log('Notification sent to: ' + contributerId);
+      }).catch(error => {
+        console.log('Could not send notification.');
+      });
+    }
+  });
+}
+
+// email templates
+
+function getEmailTemplate_NewIdeaDev(ideaId, ideaContent) {
+  var template = {}
+  template["subject"] = "[NatureNet] A new design idea was added.";
+  template["content"] = "Hi, \n\nA new design idea was just created by a NatureNet user. As your time allows, please review to see that it falls within project guidelines.\n\nThe design idea info:\nId: " + ideaId +
+      "\nText: " + ideaContent +
+      "\n\nRegards,\nNatureNet Team";
+  template["isHTML"] = false;
+  return template;
+}
+
+function getEmailTemplate_NewActivity(activityId, activityName, activityDescription) {
+  var template = {}
+  template["subject"] = "[NatureNet] A new project was added";
+  template["content"] = "Hi, \n\nA new project was just created by a NatureNet user. As your time allows, please review to see that it falls within project guidelines.\n\nThe project info:\nId: " + activityId +
+      "\nName: " + activityName +
+      "\nDescription: " + activityDescription +
+      "\n\nRegards,\nNatureNet Team";
+  template["isHTML"] = false;
+  return template;
+}
+
+function getEmailTemplate_IdeaStatusChange(userName, ideaStatus, ideaContent) {
+  var template = {}
+  template["subject"] = "The status of your NatureNet design idea has changed.";
+  template["content"] = '<html><body><p>' +
+          'Dear ' + userName + ',<br /><br />' +
+          getIdeaStatusDescription(ideaStatus) + '<br /><br />' +
+          'Your design idea:<br />"' + ideaContent +
+          '"<br />See the design ideas on the website: <a href = https://www.nature-net.org/ideas>www.nature-net.org/ideas</a>' +
+          '<br /><br />Sincerely,<br />NatureNet Project Team</p></body></html>';
+  template["isHTML"] = true;
+  return template;
+}
+
+function getEmailTemplate_NewComment(commenterName, contributerName, context, comment) {
+  var template = {}
+  template["subject"] = commenterName + " commented on your NatureNet contribution";
+  template["content"] = '<html><body><p>' +
+          'Dear ' + contributerName + ',<br /><br />' +
+          'Recently, ' + commenterName + ' commented on your ' + context + ':<br />' +
+          '"' + comment + '"<br /><br />' +
+          "Want to reply? Click <a href = https://www.nature-net.org>here</a> to reply, see others' contributions, or leave comments.<br /><br />" +
+          "Don't forget to share your design ideas and/or comments on the NatureNet website and mobile apps. Your participation strengthens the community.<br /><br />" +
+          'Sincerely, <br />NatureNet Project Team</p></body></html>';
+  template["isHTML"] = true;
+  return template;
+}
+
+function getEmailTemplate_NewReply(commenterName, contributerName, comment) {
+  var template = {}
+  template["subject"] = commenterName + " comments on a NatureNet contribution: " + comment.substring(0, 15) + "...";
+  template["content"] = '<html><body><p>' +
+          'Dear ' + contributerName + ',<br /><br />' +
+          'Recently, ' + commenterName + ' commented:<br />' +
+          '"' + comment + '"<br /><br />' +
+          'See the comment thread in context: ' + '<a href = https://www.nature-net.org>www.nature-net.org</a><br /><br />' +
+          'Sincerely, <br />NatureNet Project Team</p></body></html>';
+  template["isHTML"] = true;
+  return template;
+}
+
+function getEmailTemplate_NewUser(userName) {
+  var template = {}
+  template["subject"] = "Welcome! You are now a member of the NatureNet Community";
+  template["content"] = '<html><body><p>' +
+          'Dear ' + userName + ',<br /><br />' +
+          'Congratulations, you are now a NatureNet member!<br /><br />' +
+          'To make an observation from out in the field please install our phone app which is available on both Android and iOS:<br />' +
+          '<a href = "https://play.google.com/store/apps/details?id=org.naturenet&hl=en">Android version</a><br />' +
+          '<a href = "https://itunes.apple.com/us/app/naturenet/id1104382694">iOS version</a><br /><br />' +
+          'Don’t forget to tell us your design ideas--your suggestions for improving or adding new features or content to NatureNet--via the phone app or the NatureNet website at ' +
+          '<a href = https://www.nature-net.org>www.nature-net.org</a>.<br /><br />' +
+          'Thank you for your interest in the NatureNet project, <br />' +
+          'Naturenet Project Team</p></body></html>';
+  template["isHTML"] = true;
+  return template;
+}
