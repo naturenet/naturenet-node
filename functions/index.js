@@ -454,6 +454,8 @@ exports.onWriteUser = functions.auth.user().onCreate(event => {
 function getIdeaStatusDescription(status) {
   if (status === 'done') {
     return "We are happy to inform you that your design idea has been implemented in NatureNet. We appreciate your contribution and hope you will continue sending us your new design ideas."
+  } else if(status === 'doing'){
+    return 'Currently, your NatureNet design idea is in the <b>discussing</b> phase.'
   } else {
     return 'Currently, your NatureNet design idea is in the <b>' + status + '</b> phase.'
   }
@@ -478,6 +480,9 @@ function sendEmail(email, subject, content, isHTML) {
 
 function sendPushNotification_IdeaStatusChange(token, parent, status){
   //create the notification payload
+  if(status == "doing"){
+    status = "discussing";
+  }
   let payload = {
     notification: {
       title: 'Idea Status Change',
