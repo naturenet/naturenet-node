@@ -449,6 +449,18 @@ exports.onWriteActivity = functions.database.ref('/activities/{activityId}').onW
     devEmails.forEach(function(email) {
       sendEmail(email, template["subject"], template["content"], template["isHTML"]);
     });
+
+    //send thank you email to project submitter
+    admin.auth().getUser(activity.submitter).then(function(user) {
+      var email = user.email;
+      admin.database().ref('/users').child(activity.submitter).once("value", function(snapshot1) {
+        var displayName = snapshot1.val().display_name;
+        var template = getEmailTemplate_ThanksForProject(displayName, activity.name, activity.description, activity.sites);
+        sendEmail(email, template["subject"], template["content"], template["isHTML"]);
+      });
+
+    });
+
     //send push notification to all users about the new project
     sendPushNotification_NewProject(id);
   }
@@ -477,6 +489,35 @@ exports.onWriteUser = functions.auth.user().onCreate(event => {
 });
 
 // utility functions
+
+//returns proper site names for site keys
+function getSiteNames(sites){
+  var siteNames = "";
+
+  //makes sure sites aren't blank
+  if(sites == null || sites == ""){
+    siteNames = "Elsewhere";
+  }else{
+
+    if(sites["aces"] == true){
+      siteNames += "Aspen, ";
+    }
+    if(sites["rcnc"] == true){
+      siteNames += "Reedy Creek, ";
+    }
+    if(sites["zz_elsewhere"] == true){
+      siteNames += "Elsewhere, ";
+    }
+    if(sites["aws"] == true){
+      siteNames += "Anacostia, ";
+    }
+
+    //slice the last comma off the string
+    siteNames = siteNames.substring(0, siteNames.lastIndexOf(","));
+
+  }
+  return siteNames;
+}
 
 // returning idea status description for sending email notifications
 function getIdeaStatusDescription(status) {
@@ -668,6 +709,23 @@ function getEmailTemplate_ThanksForObservation(userName){
             'Sincerely,<br/>NatureNet Project Team</p></body></html>';
     template["isHTML"] = true;
     return template;
+}
+
+function getEmailTemplate_ThanksForProject(userName, projectName, projectDescription, site){
+  var template = {}
+  template["subject"] = "Your NatureNet project has been created successfully.";
+  template["content"] = '<html><body><p>' +
+          'Dear ' + userName + ',<br/><br/>' +
+          'Congratulations, your NatureNet project has been created successfully:<br/><br/>' +
+          '<b>Project Name:</b> ' + projectName + '<br/>' +
+          '<b>Project Description:</b> ' + projectDescription + '<br/>' +
+          '<b>Sites:</b> ' + getSiteNames(site) + '<br/><br/>' +
+          'We hope you find it rewarding to add content to your project. If you have comments, questions, or ideas about improving your experience, please share them ' +
+          '<a href=https://www.nature-net.org/ideas>here</a>.<br/><br/>' +
+          'Thank you for your interest in the NatureNet project,<br/>' +
+          'NatureNet Project Team</p></body></html>';
+  template["isHTML"] = true;
+  return template;
 }
 
 function getEmailTemplate_NewComment(commenterName, contributerName, context, comment) {
