@@ -84,6 +84,8 @@ exports.onWriteObservation = functions.database.ref('/observations/{obsId}').onW
 exports.onWriteIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event => {
   const idea = event.data.val();
   const id = event.params.ideaId;
+  //Use this to determine if it's a new idea. If it is, there will be no need to send out the notification for idea status change
+  var newIdea = false;
 
   //check to see if the idea is null. if so, simply return null so we don't do anything else
   //Note: idea deletion is handled in this method (around 30 lines down from here).
@@ -95,6 +97,7 @@ exports.onWriteIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =>
 
   // When the idea is first created
   if (!event.data.previous.exists()) {
+    newIdea = true;
     var post = {
       time: idea.created_at,
       context: "ideas"
@@ -108,11 +111,24 @@ exports.onWriteIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =>
     devEmails.forEach(function(email) {
       sendEmail(email, template["subject"], template["content"], template["isHTML"]);
     });
+
+    //get the user's email, so we can email them a thanks
+    admin.auth().getUser(submitter).then(function(user) {
+      var email = user.email;
+      admin.database().ref('/users').child(submitter).once("value", function(snapshot1) {
+        var displayName = snapshot1.val().display_name;
+        var template = getEmailTemplate_ThanksForIdea(displayName);
+        sendEmail(email, template["subject"], template["content"], template["isHTML"]);
+
+      });
+
+    });
+
     //send push notification to users about new idea
     sendPushNotification_NewIdea(id);
   }
 
-  if (!!idea && !!idea.status && event.data.child('status').changed()) { // handle a change in status
+  if (!!idea && !!idea.status && event.data.child('status').changed() && !newIdea) { // handle a change in status
     if (idea.status.toLowerCase() === 'deleted') { //handle deleted status
       console.log('Idea deleted: ', id);
 
@@ -471,9 +487,9 @@ function sendEmail(email, subject, content, isHTML) {
     mailOptions.text = content;
   }
 
-  //mailTransport.sendMail(mailOptions).then(() => {
+  mailTransport.sendMail(mailOptions).then(() => {
     console.log('An email was sent to: ', email);
-  //})
+  })
 }
 
 // push notification functions
@@ -614,6 +630,18 @@ function getEmailTemplate_IdeaStatusChange(userName, ideaStatus, ideaContent) {
           'Your design idea:<br />"' + ideaContent +
           '"<br />See the design ideas on the website: <a href = https://www.nature-net.org/ideas>www.nature-net.org/ideas</a>' +
           '<br /><br />Sincerely,<br />NatureNet Project Team</p></body></html>';
+  template["isHTML"] = true;
+  return template;
+}
+
+function getEmailTemplate_ThanksForIdea(userName){
+  var template = {}
+  template["subject"] = "Thanks for your idea!";
+  template["content"] = '<html><body><p>' +
+          'Dear ' + userName + ',<br/><br />' +
+          'Thank you for submitting your design idea. Our team will discuss your idea and provide feedback shortly.<br/>' +
+          'In the meantime, show us what observations you’ve made in your community!<br/><br/>' +
+          'Sincerely,<br/>NatureNet Project Team</p></body></html>';
   template["isHTML"] = true;
   return template;
 }
