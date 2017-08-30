@@ -31,6 +31,18 @@ exports.onWriteObservation = functions.database.ref('/observations/{obsId}').onW
       .catch(function(error) {
         console.log("Failed to add post (observation): " + error.message);
       });
+
+    //get the submitter's email so we can thank them for submitting
+    admin.auth().getUser(observation.observer).then(function(user) {
+      var email = user.email;
+      admin.database().ref('/users').child(observation.observer).once("value", function(snapshot1) {
+        var displayName = snapshot1.val().display_name;
+        var template = getEmailTemplate_ThanksForObservation(displayName);
+        sendEmail(email, template["subject"], template["content"], template["isHTML"]);
+
+      });
+
+    });
   }
 
   // TODO: chain these cases with promises so they execute linearly in one pass
@@ -644,6 +656,18 @@ function getEmailTemplate_ThanksForIdea(userName){
           'Sincerely,<br/>NatureNet Project Team</p></body></html>';
   template["isHTML"] = true;
   return template;
+}
+
+function getEmailTemplate_ThanksForObservation(userName){
+    var template = {}
+    template["subject"] = "Thanks for your observation!";
+    template["content"] = '<html><body><p>' +
+            'Dear ' + userName + ',<br/><br/>' +
+            'Thank you for submitting your observation. Check out what everyone else has been up to on our mobile apps or on our website: ' +
+            '<a href=https://www.nature-net.org/projects>www.nature-net.org/projects</a><br/><br/>' +
+            'Sincerely,<br/>NatureNet Project Team</p></body></html>';
+    template["isHTML"] = true;
+    return template;
 }
 
 function getEmailTemplate_NewComment(commenterName, contributerName, context, comment) {
