@@ -730,12 +730,20 @@ function getEmailTemplate_ThanksForProject(userName, projectName, projectDescrip
 
 function getEmailTemplate_NewComment(commenterName, contributerName, context, comment) {
   var template = {}
+  var link = "";
+
+  if(context == "idea"){
+    link = "https://www.nature-net.org/ideas"
+  }else {
+    link = "https://www.nature-net.org"
+  }
+
   template["subject"] = commenterName + " commented on your NatureNet contribution";
   template["content"] = '<html><body><p>' +
           'Dear ' + contributerName + ',<br /><br />' +
           'Recently, ' + commenterName + ' commented on your ' + context + ':<br />' +
           '"' + comment + '"<br /><br />' +
-          "Want to reply? Click <a href = https://www.nature-net.org>here</a> to reply, see others' contributions, or leave comments.<br /><br />" +
+          "Want to reply? Click <a href =" + link + " >here</a> to reply, see others' contributions, or leave comments.<br /><br />" +
           "Don't forget to share your design ideas and/or comments on the NatureNet website and mobile apps. Your participation strengthens the community.<br /><br />" +
           'Sincerely, <br />NatureNet Project Team</p></body></html>';
   template["isHTML"] = true;
