@@ -218,6 +218,35 @@ path /sites {
     index() {[ ".key", "g" ]}
 }
 
+// QUESTIONS
+type Question extends Timestamped {
+    id: String
+    content: String
+    submitter: String
+    email: String
+    source: String | Null
+    status: String | Null
+    comments: Object | Null
+
+    validate() {
+        this.id == question_id
+    }
+}
+
+path /questions {
+    read() { true }
+    index() {[ ".key", "content", "submitter", "status" ]}
+}
+
+path /questions/{question_id} is Question {
+    write() { ( isSelf(this.submitter) ) || isAdmin() }
+}
+
+// Allow writes to comments if the comment already exists and belongs to the current user
+path /questions/{question_id}/comments/{c_id} is Boolean {
+    write() { root.comments[c_id] != null && isSelf(root.comments[c_id].commenter) }
+}
+
 // USERS
 
 type PublicUserData extends Timestamped {

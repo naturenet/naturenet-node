@@ -10,7 +10,8 @@ const GeoFire = require('geofire');
 const nnemail = encodeURIComponent(functions.config().nn.email);
 const nnp = encodeURIComponent(functions.config().nn.p);
 const mailTransport = nodemailer.createTransport(`smtps://${nnemail}:${nnp}@smtp.gmail.com`);
-const devEmails = ["mj_mahzoon@yahoo.com", "smacneil01@gmail.com", "rtrejo@uncc.edu"];
+//const devEmails = ["mj_mahzoon@yahoo.com", "smacneil01@gmail.com", "rtrejo@uncc.edu"];
+const devEmails = ["rtrejo@uncc.edu"];
 var mailOptions = {
   from: '"NatureNet" <noreply@nature-net.org>'
 };
@@ -178,6 +179,20 @@ exports.onWriteIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =>
 
       });
     }
+  }
+});
+
+exports.onWriteQuestion = functions.database.ref('/questions/{questionId}').onWrite(event => {
+  const question = event.data.val();
+  var id = event.params.questionId;
+
+  //the question was first created
+  if(!event.data.previous.exists()){
+    // send an email to the dev team about a new design idea
+    var template = getEmailTemplate_NewQuestion(id, question.content, question.email);
+    devEmails.forEach(function(email) {
+      sendEmail(email, template["subject"], template["content"], template["isHTML"]);
+    });
   }
 });
 
@@ -695,6 +710,17 @@ function getEmailTemplate_ThanksForIdea(userName){
           'Thank you for submitting your design idea. Our team will discuss your idea and provide feedback shortly.<br/>' +
           'In the meantime, show us what observations you’ve made in your community!<br/><br/>' +
           'Sincerely,<br/>NatureNet Project Team</p></body></html>';
+  template["isHTML"] = true;
+  return template;
+}
+
+function getEmailTemplate_NewQuestion(questionId, content, userEmail){
+  var template = {}
+  template["subject"] = "[NatureNet] New Question";
+  template["content"] = "A new question was just asked by a NatureNet user.<br/><br/>The question info:<br/>Question Id: " + questionId +
+      "<br/>Content: " + content +
+      "<br/>User Email: " + userEmail +
+      "<br/><br/>Regards,<br/>NatureNet Team";
   template["isHTML"] = true;
   return template;
 }
