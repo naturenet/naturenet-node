@@ -10,8 +10,7 @@ const GeoFire = require('geofire');
 const nnemail = encodeURIComponent(functions.config().nn.email);
 const nnp = encodeURIComponent(functions.config().nn.p);
 const mailTransport = nodemailer.createTransport(`smtps://${nnemail}:${nnp}@smtp.gmail.com`);
-//const devEmails = ["mj_mahzoon@yahoo.com", "smacneil01@gmail.com", "rtrejo@uncc.edu"];
-const devEmails = ["rtrejo@uncc.edu"];
+const devEmails = ["mj_mahzoon@yahoo.com", "smacneil01@gmail.com"];
 var mailOptions = {
   from: '"NatureNet" <noreply@nature-net.org>'
 };
