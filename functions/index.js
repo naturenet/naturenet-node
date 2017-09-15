@@ -184,6 +184,7 @@ exports.onWriteIdea = functions.database.ref('/ideas/{ideaId}').onWrite(event =>
 exports.onWriteQuestion = functions.database.ref('/questions/{questionId}').onWrite(event => {
   const question = event.data.val();
   var id = event.params.questionId;
+  var submitter = question.submitter;
 
   //the question was first created
   if(!event.data.previous.exists()){
@@ -191,6 +192,18 @@ exports.onWriteQuestion = functions.database.ref('/questions/{questionId}').onWr
     var template = getEmailTemplate_NewQuestion(id, question.content, question.email);
     devEmails.forEach(function(email) {
       sendEmail(email, template["subject"], template["content"], template["isHTML"]);
+    });
+
+    //get the user's email, so we can email them a thanks
+    admin.auth().getUser(submitter).then(function(user) {
+      var email = user.email;
+      admin.database().ref('/users').child(submitter).once("value", function(snapshot1) {
+        var displayName = snapshot1.val().display_name;
+        var template = getEmailTemplate_ThanksForQuestion(displayName);
+        sendEmail(email, template["subject"], template["content"], template["isHTML"]);
+
+      });
+
     });
   }
 });
@@ -707,6 +720,18 @@ function getEmailTemplate_ThanksForIdea(userName){
   template["content"] = '<html><body><p>' +
           'Dear ' + userName + ',<br/><br />' +
           'Thank you for submitting your design idea. Our team will discuss your idea and provide feedback shortly.<br/>' +
+          'In the meantime, show us what observations you’ve made in your community!<br/><br/>' +
+          'Sincerely,<br/>NatureNet Project Team</p></body></html>';
+  template["isHTML"] = true;
+  return template;
+}
+
+function getEmailTemplate_ThanksForQuestion(userName){
+  var template = {}
+  template["subject"] = "We got your question!";
+  template["content"] = '<html><body><p>' +
+          'Dear ' + userName + ',<br/><br />' +
+          'We received your question. One of our team members will respond shortly.<br/>' +
           'In the meantime, show us what observations you’ve made in your community!<br/><br/>' +
           'Sincerely,<br/>NatureNet Project Team</p></body></html>';
   template["isHTML"] = true;

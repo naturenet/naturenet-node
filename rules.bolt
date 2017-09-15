@@ -226,7 +226,6 @@ type Question extends Timestamped {
     email: String
     source: String | Null
     status: String | Null
-    comments: Object | Null
 
     validate() {
         this.id == question_id
