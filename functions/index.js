@@ -83,8 +83,48 @@ exports.testsms = functions.https.onRequest((req, res) => {
 
 // ================== //
 
-
-
+// ==== Email ======= //
+                                                 
+exports.addEmailObservation = functions.https.onRequest((req, res) => {
+     
+     if (req.headers['content-type'] === 'application/x-www-form-urlencoded')
+     {
+         var key = admin.database().ref().child('observations').push().key;
+         var update_time = admin.database.ServerValue.TIMESTAMP;
+         var observation = {
+             id: key,
+             observer: 'DoAfglmluGcIyKYP5ke5ipwLmkt2', // anonymous user
+             activity: '-ACES_a38',
+             site: 'zz_elsewhere',
+             source: 'email',
+             l: { 0: 35.2617568, 1: -80.7215697 },
+             created_at: update_time,
+             updated_at: update_time,
+             data: {
+                 image: req.body.attachment,
+                 text: req.body.subject,
+                 series: req.body.id,
+                 from: req.body.from,
+                 body: req.body["body-plain"],
+                 timestamp: req.body.timestamp
+             }
+         };
+     
+         var updates = {};
+         updates['/observations/' + key] = observation;
+         updates['/activities/-ACES_a38/latest_contribution'] = update_time;
+         updates['/users/DoAfglmluGcIyKYP5ke5ipwLmkt2/latest_contribution'] = update_time;
+         return admin.database().ref().update(updates).then((snapshot) => {
+                                                            res.writeHead(200, {'content-type': 'text/html'});
+                                                            res.end();
+                                                            });
+     } else {
+         res.writeHead(406, {'content-type': 'text/html'});
+         res.end();
+     }
+});
+                        
+// ================== //
 
 exports.onWriteObservation = functions.database.ref('/observations/{obsId}').onWrite(event => {
   const observation = event.data.val();
