@@ -17,6 +17,75 @@ var mailOptions = {
 
 admin.initializeApp(functions.config().firebase);
 
+
+
+// ==== SMS ======= //
+
+var accountSid = functions.config().twilio.sid; // Your Account SID from www.twilio.com/console
+var authToken = functions.config().twilio.pwd;  // Your Auth Token from www.twilio.com/console
+
+const path = require('path');
+const cors = require('cors')();
+
+function createFirebaseObject (text, imageUrl) {
+  return new Promise((resolve, reject) => {
+    var response = {
+      id: admin.database().ref('observations').push().key,
+      observer: 'DoAfglmluGcIyKYP5ke5ipwLmkt2', //user anonymous user
+      activity: '-ACES_a38',
+      site: 'zz_elsewhere',
+      source: 'sms',
+      data: {
+        //image: result.secure_url //save cloudinary url
+      },
+      l: { 0: 35.2617568, 1: -80.7215697 },
+      created_at: admin.database.ServerValue.TIMESTAMP,
+      updated_at: admin.database.ServerValue.TIMESTAMP
+    };
+    if (imageUrl) response.data.image = imageUrl;
+    if (text) response.data.text = text;
+    return resolve(response);
+  })
+}
+
+function saveToFirebase(obs) {
+  console.log(obs);
+  return new Promise((resolve, reject) => {
+    var newData = {};
+    const timestamp = obs.created_at;
+    newData['/observations/' + obs.id] = obs;
+    newData['/activities/' + obs.activity + '/latest_contribution'] = timestamp;
+    newData['/users/' + obs.observer + '/latest_contribution'] = timestamp;
+    admin.database().ref().update(newData, function (error) {
+      if (error) return reject("Firebase Error: "+ error);
+      resolve('Upload successful');
+    });
+  });
+}
+
+exports.testsms = functions.https.onRequest((req, res) => {
+    var body = req.body;
+    console.log(body);
+
+    var text = body.Body;
+    var url = body.CloudinaryUrl ? body.CloudinaryUrl : "";
+
+    createFirebaseObject(text, url)
+      .then(saveToFirebase)
+      .then((response) => {
+        return res.send(response).status(200);
+      })
+      .catch((err) => {
+        console.log(err);
+        return res.send(err).status(500);
+      });
+});
+
+// ================== //
+
+
+
+
 exports.onWriteObservation = functions.database.ref('/observations/{obsId}').onWrite(event => {
   const observation = event.data.val();
   const id = event.params.obsId;

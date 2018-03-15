@@ -2,9 +2,11 @@
   "name": "naturenet-functions",
   "description": "Firebase Cloud Functions for NatureNet",
   "dependencies": {
+    "cloudinary": "^1.10.0",
+    "cors": "^2.8.4",
     "firebase": "^3.7.3",
     "firebase-admin": "^4.1.2",
-    "firebase-functions": "^0.5",
+    "firebase-functions": "^0.8.1",
     "geofire": "^4.1.2",
     "nodemailer": "4.0.1"
   },
