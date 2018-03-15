@@ -38,7 +38,7 @@ function createFirebaseObject (text, imageUrl) {
       data: {
         //image: result.secure_url //save cloudinary url
       },
-      l: { 0: 35.2617568, 1: -80.7215697 },
+      l: { 0: 35.307499, 1: -80.735719 },
       created_at: admin.database.ServerValue.TIMESTAMP,
       updated_at: admin.database.ServerValue.TIMESTAMP
     };
@@ -97,7 +97,7 @@ exports.addEmailObservation = functions.https.onRequest((req, res) => {
              activity: '-ACES_a38',
              site: 'zz_elsewhere',
              source: 'email',
-             l: { 0: 35.2617568, 1: -80.7215697 },
+             l: { 0: 35.307499, 1: -80.735719 },
              created_at: update_time,
              updated_at: update_time,
              data: {
