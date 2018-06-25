@@ -84,9 +84,9 @@ exports.testsms = functions.https.onRequest((req, res) => {
 // ================== //
 
 // ==== Email ======= //
-                                                 
+
 exports.addEmailObservation = functions.https.onRequest((req, res) => {
-     
+
      if (req.headers['content-type'] === 'application/x-www-form-urlencoded')
      {
          var key = admin.database().ref().child('observations').push().key;
@@ -109,7 +109,7 @@ exports.addEmailObservation = functions.https.onRequest((req, res) => {
                  timestamp: req.body.timestamp
              }
          };
-     
+
          var updates = {};
          updates['/observations/' + key] = observation;
          updates['/activities/-ACES_a38/latest_contribution'] = update_time;
@@ -123,7 +123,7 @@ exports.addEmailObservation = functions.https.onRequest((req, res) => {
          res.end();
      }
 });
-                        
+
 // ================== //
 
 exports.onWriteObservation = functions.database.ref('/observations/{obsId}').onWrite(event => {
@@ -322,6 +322,43 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
   const comment_id = event.params.commentId;
   var parent_ref;
 
+  console.log("Write Comment");
+
+  var deleteParent = function(deleted_comment) {
+    console.log("Deleting comment");
+    if (deleted_comment.context == "observations")
+      parent_ref = admin.database().ref('/observations').child(deleted_comment.parent).child("observer");
+    if (deleted_comment.context == "ideas")
+      parent_ref = admin.database().ref('/ideas').child(deleted_comment.parent).child("submitter");
+    var post_id = deleted_comment.parent + "_" + deleted_comment.commenter;
+
+    admin.database().ref('/observations/'+deleted_comment.parent+'/comments/'+comment_id).remove();
+
+    if (parent_ref) {
+      parent_ref.once("value", function(snapshot) {
+        var parent_user_id = snapshot.val();
+
+        if (parent_user_id) {
+          admin.database().ref('/users-private').child(parent_user_id).child("comments").child(post_id).remove()
+            .catch(function(error) {
+              console.log("Failed to delete the comment: " + error.message);
+            });
+        }
+
+        admin.database().ref('/comments-deleted').child(comment_id).set(deleted_comment)
+          .then(function() {
+            return event.data.adminRef.remove()
+              .catch(function(error) {
+                console.log("Failed to delete original record: " + error.message)
+              });
+          })
+          .catch(function(error) {
+            console.log("Failed to copy record to quarantine: " + error.message)
+          });
+      });
+    }
+  }
+
   if (event.data.current.exists()) { // the comment was created or edited
 
     //check to see what the context of the comment is
@@ -331,12 +368,15 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
       parent_ref = admin.database().ref('/ideas').child(comment.parent).child("submitter");
     var post_id = comment.parent + "_" + comment.commenter;
 
+
+
     if (parent_ref) {
       parent_ref.once("value", function(snapshot) {
         //get the id of the idea/observation submitter
         var parent_user_id = snapshot.val();
 
         if (!event.data.previous.exists()) { // the comment was first created
+          console.log("New Comment");
           var timestamp = admin.database.ServerValue.TIMESTAMP;
           var post = {
             created_at: timestamp,
@@ -430,6 +470,14 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
             });
           });
         } else { // the comment was edited
+          console.log("Comment was editted");
+          if (comment.status) {
+            console.log(comment);
+            if (comment.status.toLowerCase()=="deleted") {
+              const deleted_comment = event.data.previous.val();
+              deleteParent(deleted_comment);
+            }
+          } else {
           var post = {
             updated_at: admin.database.ServerValue.TIMESTAMP,
             text: comment.comment,
@@ -439,41 +487,15 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
             .catch(function(error) {
               console.log("Failed to update the comment: " + error.message);
             });
+          }
         }
       });
     }
   } else { //the comment was deleted
+    console.log("Comment was deleted");
+
     const deleted_comment = event.data.previous.val();
-
-    if (deleted_comment.context == "observations")
-      parent_ref = admin.database().ref('/observations').child(deleted_comment.parent).child("observer");
-    if (deleted_comment.context == "ideas")
-      parent_ref = admin.database().ref('/ideas').child(deleted_comment.parent).child("submitter");
-    var post_id = deleted_comment.parent + "_" + deleted_comment.commenter;
-
-    if (parent_ref) {
-      parent_ref.once("value", function(snapshot) {
-        var parent_user_id = snapshot.val();
-
-        if (parent_user_id) {
-          admin.database().ref('/users-private').child(parent_user_id).child("comments").child(post_id).remove()
-            .catch(function(error) {
-              console.log("Failed to delete the comment: " + error.message);
-            });
-        }
-
-        return admin.database().ref('/comments-deleted').child(comment_id).set(deleted_comment)
-          .then(function() {
-            return event.data.adminRef.remove()
-              .catch(function(error) {
-                console.log("Failed to delete original record: " + error.message)
-              });
-          })
-          .catch(function(error) {
-            console.log("Failed to copy record to quarantine: " + error.message)
-          });
-      });
-    }
+    deleteParent(deleted_comment);
   }
 });
 
