@@ -406,7 +406,7 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
                   // sending email
                   var email = user.email;
                   var template = getEmailTemplate_NewComment(the_commenter_displayName, the_parent_user_displayName,
-                    comment.context.substring(0, comment.context.length -1), comment.comment);
+                    comment.context.substring(0, comment.context.length -1), comment.comment,  comment.parent);
                   sendEmail(email, template["subject"], template["content"], template["isHTML"]);
                   // sending notification
                   sendPushNotification_Comment(the_commenter_displayName,
@@ -909,14 +909,18 @@ function getEmailTemplate_ThanksForProject(userName, projectName, projectDescrip
   return template;
 }
 
-function getEmailTemplate_NewComment(commenterName, contributerName, context, comment) {
+function getEmailTemplate_NewComment(commenterName, contributerName, context, comment, id) {
   var template = {}
   var link = "";
 
   if(context == "idea"){
-    link = "https://www.nature-net.org/ideas"
+    link = "https://www.nature-net.org/ideas";
   }else {
-    link = "https://www.nature-net.org"
+    if (id) {
+      link = "https://www.nature-net.org/explore/observation/"+id
+    } else {
+      link = "https://www.nature-net.org/explore/"
+    }
   }
 
   template["subject"] = commenterName + " commented on your NatureNet contribution";
