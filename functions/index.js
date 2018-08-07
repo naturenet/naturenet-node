@@ -950,7 +950,7 @@ function getEmailTemplate_NewReply(commenterName, contributerName, comment, id) 
           'Dear ' + contributerName + ',<br /><br />' +
           'Recently, ' + commenterName + ' commented:<br />' +
           '"' + comment + '"<br /><br />' +
-          'See the comment thread in context: ' + '<a href = https://www.nature-net.org>www.nature-net.org</a><br /><br />' +
+          'See the comment thread in context: ' + '<a href = "'+link+'">'+link+'</a><br /><br />' +
           'Sincerely, <br />NatureNet Project Team</p></body></html>';
   template["isHTML"] = true;
   return template;
