@@ -369,7 +369,6 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
     var post_id = comment.parent + "_" + comment.commenter;
 
 
-
     if (parent_ref) {
       parent_ref.once("value", function(snapshot) {
         //get the id of the idea/observation submitter
@@ -387,6 +386,7 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
             text: comment.comment,
             seen: false
           };
+
           admin.database().ref('/users-private').child(parent_user_id).child("comments").child(post_id).set(post)
             .catch(function(error) {
               console.log("Failed to add the comment: " + error.message);
@@ -403,6 +403,9 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
 
                 //send email+notification to the observation/idea submitter about the new comment
                 admin.auth().getUser(parent_user_id).then(function(user) {
+                  // todo: save to notifications
+                  //admin.database().ref('/notifications')... add
+
                   // sending email
                   var email = user.email;
                   var template = getEmailTemplate_NewComment(the_commenter_displayName, the_parent_user_displayName,
@@ -453,7 +456,7 @@ exports.onWriteComment = functions.database.ref('/comments/{commentId}').onWrite
 
                       admin.auth().getUser(previousCommenterId).then(function(user) {
                         var email = user.email;
-                        var template = getEmailTemplate_NewReply(commenterName, previousCommenterName, comment.comment);
+                        var template = getEmailTemplate_NewReply(commenterName, previousCommenterName, comment.comment, comment.parent);
                         sendEmail(email, template["subject"], template["content"], template["isHTML"]);
                         // sending notification
                         sendPushNotification_Comment(commenterName,
@@ -935,8 +938,13 @@ function getEmailTemplate_NewComment(commenterName, contributerName, context, co
   return template;
 }
 
-function getEmailTemplate_NewReply(commenterName, contributerName, comment) {
+function getEmailTemplate_NewReply(commenterName, contributerName, comment, id) {
   var template = {}
+  var link = "https://www.nature-net.org/explore";
+  if (id) {
+    link = "https://www.nature-net.org/explore/observation/"+id
+  }
+
   template["subject"] = commenterName + " comments on a NatureNet contribution: " + comment.substring(0, 15) + "...";
   template["content"] = '<html><body><p>' +
           'Dear ' + contributerName + ',<br /><br />' +
