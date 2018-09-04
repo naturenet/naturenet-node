@@ -942,10 +942,10 @@ function getEmailTemplate_NewReply(commenterName, contributerName, comment, id) 
   var template = {}
   var link = "https://www.nature-net.org/explore";
   if (id) {
-    link = "https://www.nature-net.org/explore/observation/"+id
+    link = "https://www.nature-net.org/explore?observation="+id
   }
 
-  template["subject"] = commenterName + " comments on a NatureNet contribution: " + comment.substring(0, 15) + "...";
+  template["subject"] = commenterName + " commented on your NatureNet contribution: " + comment.substring(0, 15) + "...";
   template["content"] = '<html><body><p>' +
           'Dear ' + contributerName + ',<br /><br />' +
           'Recently, ' + commenterName + ' commented:<br />' +
